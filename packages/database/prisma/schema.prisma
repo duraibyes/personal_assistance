@@ -1,0 +1,206 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id        String   @id // Maps to Supabase auth.users.id
+  email     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  loans            Loan[]
+  expenses         Expense[]
+  incomes          Income[]
+  purchases        Purchase[]
+  vehicles         Vehicle[]
+  documents        Document[]
+}
+
+model Loan {
+  id                String   @id @default(uuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id])
+  name              String
+  lender            String
+  loanType          String
+  principalAmount   Float
+  interestRate      Float
+  tenureMonths      Int
+  emiAmount         Float
+  startDate         DateTime
+  firstEmiDate      DateTime
+  numberOfEmis      Int
+  paidEmis          Int      @default(0)
+  remainingEmis     Int
+  outstandingAmount Float
+  nextEmiDate       DateTime
+  status            String   @default("ACTIVE") // ACTIVE, CLOSED
+  processingFee     Float?
+  insuranceAmount   Float?
+  documentId        String?
+  
+  payments          LoanPayment[]
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model LoanPayment {
+  id            String   @id @default(uuid())
+  loanId        String
+  loan          Loan     @relation(fields: [loanId], references: [id])
+  amount        Float
+  paymentDate   DateTime
+  notes         String?
+  
+  createdAt     DateTime @default(now())
+}
+
+model Expense {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  amount        Float
+  category      String
+  description   String
+  date          DateTime
+  paymentMethod String
+  vendorName    String?
+  transactionId String?
+  upiId         String?
+  documentId    String?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Income {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  amount      Float
+  source      String
+  description String?
+  date        DateTime
+  documentId  String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Purchase {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  amount       Float
+  item         String
+  category     String
+  purchaseDate DateTime
+  vendor       String?
+  notes        String?
+  documentId   String?
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Vehicle {
+  id                 String   @id @default(uuid())
+  userId             String
+  user               User     @relation(fields: [userId], references: [id])
+  name               String
+  manufacturer       String
+  model              String
+  registrationNumber String?
+  purchaseDate       DateTime?
+  purchasePrice      Float?
+  currentMileage     Int?
+  
+  services           VehicleService[]
+  fuelEntries        FuelEntry[]
+  insurances         Insurance[]
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model VehicleService {
+  id          String   @id @default(uuid())
+  vehicleId   String
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id])
+  serviceDate DateTime
+  mileage     Int
+  serviceType String
+  amount      Float
+  workshop    String?
+  notes       String?
+  documentId  String?
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model FuelEntry {
+  id            String   @id @default(uuid())
+  vehicleId     String
+  vehicle       Vehicle  @relation(fields: [vehicleId], references: [id])
+  date          DateTime
+  amount        Float
+  liters        Float
+  pricePerLiter Float
+  mileage       Int?
+  station       String?
+
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Insurance {
+  id           String   @id @default(uuid())
+  vehicleId    String
+  vehicle      Vehicle  @relation(fields: [vehicleId], references: [id])
+  provider     String
+  policyNumber String?
+  startDate    DateTime
+  expiryDate   DateTime
+  premium      Float
+  documentId   String?
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Document {
+  id               String   @id @default(uuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id])
+  fileName         String
+  mimeType         String
+  storageKey       String
+  documentType     String
+  processingStatus String   @default("UPLOADED") // UPLOADED, PROCESSING, EXTRACTED, NEEDS_REVIEW, VERIFIED, FAILED
+  
+  extractions      DocumentExtraction[]
+
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model DocumentExtraction {
+  id               String   @id @default(uuid())
+  documentId       String
+  document         Document @relation(fields: [documentId], references: [id])
+  extractedText    String?
+  structuredData   Json?
+  processingStatus String
+  
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
