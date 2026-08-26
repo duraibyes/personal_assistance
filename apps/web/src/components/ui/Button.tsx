@@ -13,12 +13,12 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    'bg-indigo-500 text-white hover:bg-indigo-400 shadow-lg shadow-indigo-500/20',
+    'bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20',
   secondary:
-    'border border-white/20 bg-transparent text-white hover:bg-white/10',
+    'border border-border bg-secondary text-secondary-foreground hover:bg-secondary/70',
   danger:
-    'bg-rose-600 text-white hover:bg-rose-500 shadow-lg shadow-rose-500/20',
-  ghost: 'bg-transparent text-gray-300 hover:text-white hover:bg-white/5',
+    'bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-lg shadow-destructive/20',
+  ghost: 'bg-transparent text-muted-foreground hover:text-foreground hover:bg-accent',
 }
 
 const sizeClasses: Record<ButtonSize, string> = {
@@ -62,7 +62,16 @@ export function SaveButton(props: Omit<ButtonProps, 'variant' | 'children'> & { 
 export function CancelButton(props: Omit<ButtonProps, 'variant' | 'children'> & { children?: React.ReactNode }) {
   const { children = 'Cancel', ...rest } = props
   return (
-    <Button variant="ghost" type="button" {...rest}>
+    <Button variant="secondary" type="button" {...rest}>
+      {children}
+    </Button>
+  )
+}
+
+export function UploadButton(props: Omit<ButtonProps, 'variant' | 'children'> & { children?: React.ReactNode }) {
+  const { children = 'Upload', ...rest } = props
+  return (
+    <Button variant="primary" type="button" {...rest}>
       {children}
     </Button>
   )

@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
-import { Button } from '@/components/ui/Button'
+import { Button, UploadButton, CancelButton } from '@/components/ui/Button'
 import imageCompression from 'browser-image-compression'
 import { FileText, Eye, Trash2 } from 'lucide-react'
 
@@ -95,38 +95,37 @@ export function MultiDocumentUploader({
   return (
     <div className="space-y-4">
       {/* Upload Section */}
-      <div className="rounded-2xl border border-white/10 bg-white/5 p-4 flex flex-col md:flex-row items-center gap-4">
+      <div className="rounded-2xl border border-border bg-secondary/10 p-4 flex flex-col md:flex-row items-center gap-4">
         <div className="flex-1 w-full">
           <input
             id="multi-doc-upload"
             type="file"
             accept="image/*,application/pdf"
             onChange={handleFileChange}
-            className="block w-full text-sm text-gray-400 file:mr-4 file:rounded-xl file:border-0 file:bg-indigo-500/20 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-indigo-300 hover:file:bg-indigo-500/30"
+            className="block w-full text-sm text-muted-foreground file:mr-4 file:rounded-xl file:border-0 file:bg-primary/20 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-primary hover:file:bg-primary/30"
           />
         </div>
-        <Button
+        <UploadButton
           onClick={handleUpload}
           disabled={!file || isUploading}
           loading={isUploading}
-          type="button"
           className="shrink-0 w-full md:w-auto"
         >
           {isUploading ? 'Uploading...' : 'Upload Attachment'}
-        </Button>
+        </UploadButton>
       </div>
-      {error && <p className="text-sm text-red-400">{error}</p>}
+      {error && <p className="text-sm text-destructive">{error}</p>}
 
       {/* Documents List */}
       {documents.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {documents.map((doc) => (
-            <div key={doc.id} className="rounded-xl border border-white/10 bg-black/40 p-3 flex flex-col justify-between">
+            <div key={doc.id} className="rounded-xl border border-border bg-background p-3 flex flex-col justify-between shadow-sm">
               <div className="flex items-start gap-3 mb-3">
-                <FileText className="h-8 w-8 text-indigo-400 shrink-0" />
+                <FileText className="h-8 w-8 text-primary shrink-0" />
                 <div className="overflow-hidden">
-                  <div className="text-sm font-medium text-gray-200 truncate" title={doc.fileName}>{doc.fileName}</div>
-                  <div className="text-xs text-gray-500">{new Date(doc.createdAt).toLocaleDateString()}</div>
+                  <div className="text-sm font-medium text-foreground truncate" title={doc.fileName}>{doc.fileName}</div>
+                  <div className="text-xs text-muted-foreground">{new Date(doc.createdAt).toLocaleDateString()}</div>
                 </div>
               </div>
               <div className="flex justify-end gap-2 mt-auto">
@@ -134,7 +133,7 @@ export function MultiDocumentUploader({
                   href={doc.storageKey}
                   target="_blank"
                   rel="noreferrer"
-                  className="p-2 bg-white/5 hover:bg-white/10 rounded-lg text-gray-300 transition-colors inline-flex"
+                  className="p-2 bg-secondary hover:bg-secondary/80 rounded-lg text-foreground transition-colors inline-flex"
                   title="Preview"
                 >
                   <Eye className="h-4 w-4" />
@@ -142,7 +141,7 @@ export function MultiDocumentUploader({
                 <button
                   type="button"
                   onClick={() => setDocToRemove(doc.id)}
-                  className="p-2 bg-rose-500/10 hover:bg-rose-500/20 rounded-lg text-rose-400 transition-colors inline-flex"
+                  className="p-2 bg-destructive/10 hover:bg-destructive/20 rounded-lg text-destructive transition-colors inline-flex"
                   title="Remove"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -155,13 +154,13 @@ export function MultiDocumentUploader({
 
       {/* Remove Confirm Dialog */}
       {docToRemove && (
-        <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-zinc-900 border border-white/10 p-6 rounded-2xl max-w-sm w-full shadow-2xl">
-            <h3 className="text-lg font-bold text-white mb-2">Remove Document?</h3>
-            <p className="text-gray-400 text-sm mb-6">Are you sure you want to remove this attachment from the loan? This action cannot be undone.</p>
+        <div className="fixed inset-0 bg-background/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-background border border-border p-6 rounded-2xl max-w-sm w-full shadow-2xl">
+            <h3 className="text-lg font-bold text-foreground mb-2">Remove Document?</h3>
+            <p className="text-muted-foreground text-sm mb-6">Are you sure you want to remove this attachment from the loan? This action cannot be undone.</p>
             <div className="flex justify-end gap-3">
-              <Button type="button" onClick={() => setDocToRemove(null)}>Cancel</Button>
-              <Button type="button" onClick={handleConfirmRemove} className="bg-rose-600 hover:bg-rose-700 text-white border-0">Yes, Remove</Button>
+              <CancelButton onClick={() => setDocToRemove(null)} />
+              <Button type="button" onClick={handleConfirmRemove} variant="danger">Yes, Remove</Button>
             </div>
           </div>
         </div>

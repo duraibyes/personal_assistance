@@ -11,7 +11,7 @@ import Link from 'next/link'
 import { calculateEMI } from '@repo/shared'
 import { Input } from './Input'
 import { Select } from './Select'
-import { SaveButton, Button } from './Button'
+import { SaveButton, CancelButton } from './Button'
 import { DocumentUploader } from '../DocumentUploader'
 import { MultiDocumentUploader } from './MultiDocumentUploader'
 
@@ -169,20 +169,20 @@ export function LoanForm({ token, initialData }: { token: string; initialData?: 
     <div className="mx-auto max-w-7xl animate-in fade-in duration-500">
       <div className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link href="/dashboard/loans" className="p-2 rounded-xl bg-white/5 hover:bg-white/10 text-gray-400 transition-colors">
+          <Link href="/dashboard/loans" className="p-2 rounded-xl bg-secondary hover:bg-secondary/80 text-muted-foreground transition-colors">
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-white drop-shadow-md">
+            <h1 className="text-2xl font-bold tracking-tight text-foreground drop-shadow-md">
               {initialData ? 'Edit Loan' : 'Add New Loan'}
             </h1>
-            <p className="text-sm text-gray-400">{initialData ? 'Update your loan details and attachments.' : 'Upload a document or fill the form manually.'}</p>
+            <p className="text-sm text-muted-foreground">{initialData ? 'Update your loan details and attachments.' : 'Upload a document or fill the form manually.'}</p>
           </div>
         </div>
       </div>
 
       {serverError && (
-        <div className="mb-6 rounded-xl bg-red-500/20 p-4 text-sm text-red-200 border border-red-500/20 shadow-lg">
+        <div className="mb-6 rounded-xl bg-destructive/10 p-4 text-sm text-destructive border border-destructive/20 shadow-sm">
           {serverError}
         </div>
       )}
@@ -190,10 +190,10 @@ export function LoanForm({ token, initialData }: { token: string; initialData?: 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
         {/* Left Side: Form Fields */}
         <div className="xl:col-span-2 space-y-6">
-          <div className="rounded-3xl border border-white/10 bg-black/40 backdrop-blur-md p-6 md:p-8">
-            <div className="flex items-center gap-3 mb-6 border-b border-white/10 pb-4">
-              <Calculator className="h-5 w-5 text-indigo-400" />
-              <h2 className="text-lg font-semibold text-white">Loan Details</h2>
+          <div className="rounded-3xl border border-border bg-card backdrop-blur-md p-6 md:p-8 shadow-sm">
+            <div className="flex items-center gap-3 mb-6 border-b border-border pb-4">
+              <Calculator className="h-5 w-5 text-primary" />
+              <h2 className="text-lg font-semibold text-card-foreground">Loan Details</h2>
             </div>
             
             <form id="loan-form" onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5" noValidate>
@@ -226,12 +226,12 @@ export function LoanForm({ token, initialData }: { token: string; initialData?: 
             </form>
           </div>
 
-          <div className="rounded-3xl border border-white/10 bg-black/40 backdrop-blur-md p-6 md:p-8">
-             <div className="flex items-center gap-3 mb-6 border-b border-white/10 pb-4">
-              <FileText className="h-5 w-5 text-emerald-400" />
-              <h2 className="text-lg font-semibold text-white">Attachments</h2>
+          <div className="rounded-3xl border border-border bg-card backdrop-blur-md p-6 md:p-8 shadow-sm">
+             <div className="flex items-center gap-3 mb-6 border-b border-border pb-4">
+              <FileText className="h-5 w-5 text-primary" />
+              <h2 className="text-lg font-semibold text-card-foreground">Attachments</h2>
             </div>
-            <p className="text-sm text-gray-400 mb-4">Upload multiple documents like loan agreements, NOCs, or ID proofs associated with this loan.</p>
+            <p className="text-sm text-muted-foreground mb-4">Upload multiple documents like loan agreements, NOCs, or ID proofs associated with this loan.</p>
             <MultiDocumentUploader 
               entityId={initialData?.id || 'pending-loan'} 
               token={token}
@@ -244,15 +244,23 @@ export function LoanForm({ token, initialData }: { token: string; initialData?: 
 
         {/* Right Side: Extractor & Preview */}
         <div className="space-y-6">
-          <div className="rounded-3xl border border-white/10 bg-black/40 backdrop-blur-md p-6">
-            <h3 className="text-base font-semibold text-white mb-4 border-b border-white/10 pb-3">AI Data Extractor</h3>
-            <div className="flex gap-4 mb-4">
-              <Button type="button" onClick={() => setActiveTab('upload')} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'upload' ? 'bg-white/10 text-white' : 'bg-transparent text-gray-400 hover:text-white'}`}>
+          <div className="rounded-3xl border border-border bg-card backdrop-blur-md p-6 shadow-sm">
+            <h3 className="text-base font-semibold text-card-foreground mb-4 border-b border-border pb-3">AI Data Extractor</h3>
+            <div className="flex gap-1 mb-4 rounded-xl bg-secondary/50 p-1">
+              <button
+                type="button"
+                onClick={() => setActiveTab('upload')}
+                className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'upload' ? 'bg-primary text-primary-foreground shadow-sm' : 'bg-transparent text-muted-foreground hover:text-foreground'}`}
+              >
                 Upload New
-              </Button>
-              <Button type="button" onClick={() => { setActiveTab('library'); fetchLibrary(); }} className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'library' ? 'bg-white/10 text-white' : 'bg-transparent text-gray-400 hover:text-white'}`}>
+              </button>
+              <button
+                type="button"
+                onClick={() => { setActiveTab('library'); fetchLibrary(); }}
+                className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'library' ? 'bg-primary text-primary-foreground shadow-sm' : 'bg-transparent text-muted-foreground hover:text-foreground'}`}
+              >
                 From Library
-              </Button>
+              </button>
             </div>
 
             {activeTab === 'upload' ? (
@@ -273,19 +281,19 @@ export function LoanForm({ token, initialData }: { token: string; initialData?: 
                 }}
               />
             ) : (
-              <div className="min-h-[150px] bg-white/5 rounded-xl border border-white/10 p-3">
+              <div className="min-h-[150px] bg-secondary/10 rounded-xl border border-border p-3">
                 {isLoadingLibrary ? (
-                  <div className="flex items-center justify-center h-full text-gray-400 py-8"><Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading...</div>
+                  <div className="flex items-center justify-center h-full text-muted-foreground py-8"><Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading...</div>
                 ) : libraryDocs.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-full text-gray-500 py-8 text-sm"><FileText className="w-8 h-8 mb-2 opacity-50" /> No unused docs.</div>
+                  <div className="flex flex-col items-center justify-center h-full text-muted-foreground py-8 text-sm"><FileText className="w-8 h-8 mb-2 opacity-50" /> No unused docs.</div>
                 ) : (
                   <div className="flex flex-col gap-2 max-h-[300px] overflow-y-auto custom-scrollbar pr-2">
                     {libraryDocs.map(doc => (
-                      <div key={doc.id} onClick={() => handleSelectLibraryDoc(doc)} className={`p-3 rounded-lg border cursor-pointer flex gap-3 items-center transition-colors ${uploadedDocumentId === doc.id ? 'bg-indigo-500/20 border-indigo-500' : 'bg-black/40 border-white/5 hover:border-white/20'}`}>
-                        <FileText className={`w-6 h-6 shrink-0 ${uploadedDocumentId === doc.id ? 'text-indigo-400' : 'text-gray-400'}`} />
+                      <div key={doc.id} onClick={() => handleSelectLibraryDoc(doc)} className={`p-3 rounded-lg border cursor-pointer flex gap-3 items-center transition-colors ${uploadedDocumentId === doc.id ? 'bg-primary/10 border-primary' : 'bg-card border-border hover:border-primary/50'}`}>
+                        <FileText className={`w-6 h-6 shrink-0 ${uploadedDocumentId === doc.id ? 'text-primary' : 'text-muted-foreground'}`} />
                         <div className="overflow-hidden w-full">
-                          <div className="text-sm font-medium text-white truncate" title={doc.fileName}>{doc.fileName}</div>
-                          <div className="text-xs text-gray-500">{new Date(doc.createdAt).toLocaleDateString()}</div>
+                          <div className="text-sm font-medium text-foreground truncate" title={doc.fileName}>{doc.fileName}</div>
+                          <div className="text-xs text-muted-foreground">{new Date(doc.createdAt).toLocaleDateString()}</div>
                         </div>
                       </div>
                     ))}
@@ -295,34 +303,34 @@ export function LoanForm({ token, initialData }: { token: string; initialData?: 
             )}
           </div>
 
-          <div className="rounded-3xl border border-white/10 bg-black/40 backdrop-blur-md p-6 sticky top-6">
-            <h3 className="text-base font-semibold text-white mb-4 border-b border-white/10 pb-3">Extracted Data Preview</h3>
+          <div className="rounded-3xl border border-border bg-card backdrop-blur-md p-6 sticky top-6 shadow-sm">
+            <h3 className="text-base font-semibold text-card-foreground mb-4 border-b border-border pb-3">Extracted Data Preview</h3>
             
             {extractedData ? (
-              <div className="space-y-3 text-sm text-gray-300 max-h-[300px] overflow-y-auto custom-scrollbar pr-2 mb-6">
+              <div className="space-y-3 text-sm text-foreground max-h-[300px] overflow-y-auto custom-scrollbar pr-2 mb-6">
                 {Object.entries(extractedData).map(([key, value]) => {
                   if (!value) return null;
                   return (
                     <div key={key} className="flex flex-col">
-                      <span className="text-xs text-gray-500 font-medium uppercase tracking-wider">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
-                      <span className="font-semibold text-white break-words">{String(value)}</span>
+                      <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                      <span className="font-semibold text-foreground break-words">{String(value)}</span>
                     </div>
                   )
                 })}
               </div>
             ) : (
-              <div className="text-sm text-gray-500 text-center py-6 border border-dashed border-white/10 rounded-xl mb-6">
+              <div className="text-sm text-muted-foreground text-center py-6 border border-dashed border-border rounded-xl mb-6">
                 No extraction data available.
               </div>
             )}
 
-            <div className="border-t border-white/10 pt-4 bg-white/5 rounded-xl p-4 mt-auto">
-              <h3 className="text-xs text-gray-400 font-medium uppercase tracking-wider mb-2">Calculated EMI Preview</h3>
-              <div className="text-3xl font-bold text-white mb-2">₹{liveEmi.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
+            <div className="border-t border-border pt-4 bg-secondary/10 rounded-xl p-4 mt-auto">
+              <h3 className="text-xs text-muted-foreground font-medium uppercase tracking-wider mb-2">Calculated EMI Preview</h3>
+              <div className="text-3xl font-bold text-foreground mb-2">₹{liveEmi.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</div>
               {principalAmount > 0 && liveEmi > 0 && (
-                <div className="text-xs text-gray-400 space-y-1">
-                  <div>Total Payment: <span className="text-white">₹{(liveEmi * tenureMonths).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
-                  <div>Total Interest: <span className="text-white">₹{((liveEmi * tenureMonths) - principalAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <div>Total Payment: <span className="text-foreground">₹{(liveEmi * tenureMonths).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
+                  <div>Total Interest: <span className="text-foreground">₹{((liveEmi * tenureMonths) - principalAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span></div>
                 </div>
               )}
             </div>
@@ -332,7 +340,7 @@ export function LoanForm({ token, initialData }: { token: string; initialData?: 
 
       <div className="mt-8 flex items-center justify-end gap-4">
         <Link href="/dashboard/loans">
-          <Button type="button" variant="secondary" disabled={isSubmitting}>Cancel</Button>
+          <CancelButton disabled={isSubmitting} />
         </Link>
         <SaveButton form="loan-form" type="submit" disabled={!isValid || isSubmitting} loading={isSubmitting} className="px-8">
           {initialData ? 'Save Changes' : 'Create Loan'}

@@ -20,7 +20,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
 
     return (
       <div className="flex flex-col gap-1.5 w-full">
-        <label htmlFor={selectId} className="text-sm font-medium text-white drop-shadow-sm">
+        <label htmlFor={selectId} className="text-sm font-medium text-foreground">
           {label}
         </label>
         <div className="relative">
@@ -29,10 +29,10 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
             ref={ref}
             aria-invalid={Boolean(error)}
             aria-describedby={error ? `${selectId}-error` : undefined}
-            className={`w-full appearance-none rounded-xl border bg-black/20 px-4 py-3 pr-10 text-white outline-none transition-all focus:bg-black/40 focus:ring-2 ${
+            className={`w-full appearance-none rounded-xl border bg-background px-4 py-3 pr-10 text-foreground outline-none transition-all focus:bg-accent/10 focus:ring-2 ${
               error
-                ? 'border-red-500/50 focus:border-red-500/50 focus:ring-red-500/20'
-                : 'border-white/20 focus:border-white/50 focus:ring-white/20'
+                ? 'border-destructive/50 focus:border-destructive/50 focus:ring-destructive/20'
+                : 'border-border focus:border-primary/50 focus:ring-primary/20'
             } ${className}`}
             {...props}
           >
@@ -42,15 +42,15 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(
               </option>
             )}
             {options.map((opt) => (
-              <option key={opt.value} value={opt.value} disabled={opt.disabled} className="bg-zinc-900 text-white">
+              <option key={opt.value} value={opt.value} disabled={opt.disabled} className="bg-background text-foreground">
                 {opt.label}
               </option>
             ))}
           </select>
-          <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+          <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         </div>
         {error && (
-          <span id={`${selectId}-error`} className="text-xs text-red-400 mt-0.5" role="alert">
+          <span id={`${selectId}-error`} className="text-xs font-medium text-destructive mt-0.5" role="alert">
             {error}
           </span>
         )}

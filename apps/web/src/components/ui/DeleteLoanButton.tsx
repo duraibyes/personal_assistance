@@ -51,7 +51,7 @@ export function DeleteLoanButton({
         <Trash2 className="h-4 w-4" />
         Delete
       </Button>
-      {error && <p className="text-xs text-red-400 mt-2">{error}</p>}
+      {error && <p className="text-xs text-destructive mt-2">{error}</p>}
       <ConfirmDialog
         isOpen={open}
         onClose={() => !loading && setOpen(false)}

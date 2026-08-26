@@ -5,8 +5,10 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { login, signup } from './actions'
+import Image from 'next/image'
 import { Input } from '@/components/ui/Input'
 import { Button } from '@/components/ui/Button'
+import LogoAuth from '@/logo-auth.png'
 import { useRouter } from 'next/navigation'
 
 const authSchema = z.object({
@@ -46,23 +48,30 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex h-screen w-full items-center justify-center bg-[url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop')] bg-cover bg-center">
-      {/* Overlay to darken background */}
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" />
-      
-      <div className="relative z-10 w-full max-w-md overflow-hidden rounded-3xl border border-white/20 bg-white/10 p-8 shadow-2xl backdrop-blur-xl">
-        <div className="mb-8 text-center">
-          <h1 className="text-3xl font-bold tracking-tight text-white drop-shadow-md">
-            Welcome Back
-          </h1>
-          <p className="mt-2 text-sm text-gray-200">
-            Sign in to manage your assets and expenses
+    <div className="relative flex h-screen w-full items-center justify-center overflow-hidden bg-brand-gradient p-4">
+      {/* Decorative glow accents */}
+      <div className="pointer-events-none absolute -top-32 -left-24 h-96 w-96 rounded-full bg-brand-blue/30 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-32 -right-24 h-96 w-96 rounded-full bg-brand-green/25 blur-3xl" />
+      <div
+        className="pointer-events-none absolute inset-0 opacity-[0.07]"
+        style={{
+          backgroundImage:
+            'linear-gradient(white 1px, transparent 1px), linear-gradient(90deg, white 1px, transparent 1px)',
+          backgroundSize: '40px 40px',
+        }}
+      />
+
+      <div className="relative z-10 w-full max-w-md overflow-hidden rounded-3xl border border-border bg-card p-8 shadow-2xl">
+        <div className="mb-8 flex flex-col items-center text-center">
+          <Image src={LogoAuth} alt="WealthGuard — Track, Manage, Grow" className="w-40 h-auto mb-3" priority />
+          <p className="mt-2 text-sm text-muted-foreground">
+            Sign in to manage your assets, loans, and expenses
           </p>
         </div>
 
         <form className="flex flex-col gap-5">
           {serverError && (
-            <div className="rounded-xl bg-red-500/20 p-3 text-center text-sm font-medium text-red-200 backdrop-blur-md">
+            <div className="rounded-xl border border-destructive/20 bg-destructive/10 p-3 text-center text-sm font-medium text-destructive">
               {serverError}
             </div>
           )}

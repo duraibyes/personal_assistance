@@ -35,12 +35,40 @@ export const loansRouter: Router = Router();
 loansRouter.get('/', async (req, res) => {
   try {
     const userId = req.user!.id;
-    const where = req.user!.isAdmin ? { isDeleted: false } : { userId, isDeleted: false };
-    const loans = await prisma.loan.findMany({
-      where,
-      orderBy: { createdAt: 'desc' },
+    const page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
+    const pageSize = Math.min(50, Math.max(1, parseInt(req.query.pageSize as string, 10) || 10));
+    const search = (req.query.search as string || '').trim();
+    const status = req.query.status as string | undefined;
+    const loanType = req.query.loanType as string | undefined;
+
+    const where: any = req.user!.isAdmin ? { isDeleted: false } : { userId, isDeleted: false };
+    if (status) where.status = status;
+    if (loanType) where.loanType = loanType;
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { lender: { contains: search, mode: 'insensitive' } },
+        { loanNumber: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    const [data, total] = await Promise.all([
+      prisma.loan.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * pageSize,
+        take: pageSize,
+      }),
+      prisma.loan.count({ where }),
+    ]);
+
+    res.json({
+      data,
+      total,
+      page,
+      pageSize,
+      totalPages: Math.max(1, Math.ceil(total / pageSize)),
     });
-    res.json(loans);
   } catch (error) {
     console.error('Fetch loans error:', error);
     res.status(500).json({ error: 'Failed to fetch loans' });

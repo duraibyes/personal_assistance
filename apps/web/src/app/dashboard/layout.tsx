@@ -16,10 +16,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     : { email: 'User' }
 
   return (
-    <div className="flex h-screen w-full bg-zinc-950 text-white overflow-hidden">
+    <div className="flex flex-col md:flex-row h-screen w-full bg-background text-foreground overflow-hidden">
       <SidebarNav userEmail={user.email} />
-      <main className="flex-1 overflow-y-auto bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-zinc-900 via-zinc-950 to-black relative">
-        <div className="p-8 max-w-7xl mx-auto min-h-screen">{children}</div>
+      <main className="flex-1 overflow-y-auto bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-background via-background to-secondary/20 relative">
+        <div className="p-4 md:p-8 max-w-7xl mx-auto min-h-screen">{children}</div>
       </main>
     </div>
   )

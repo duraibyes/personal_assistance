@@ -39,11 +39,11 @@ export function ConfirmDialog({
           <div className="mt-0.5 rounded-full bg-rose-500/15 p-2 text-rose-400 shrink-0">
             <AlertTriangle className="h-5 w-5" />
           </div>
-          <p className="text-sm text-gray-300 leading-relaxed">{description}</p>
+          <p className="text-sm text-foreground/80 leading-relaxed">{description}</p>
         </div>
 
         <div className="flex items-center justify-end gap-3 pt-2">
-          <Button variant="ghost" onClick={onClose} disabled={loading}>
+          <Button variant="secondary" onClick={onClose} disabled={loading}>
             {cancelLabel}
           </Button>
           <Button

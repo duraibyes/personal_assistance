@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Button } from "@/components/ui/Button";
+import { UploadButton } from "@/components/ui/Button";
 import imageCompression from "browser-image-compression";
 
 interface ExtractionResult {
@@ -111,8 +111,8 @@ export function DocumentUploader({
   };
 
   return (
-    <div className="space-y-4 rounded-2xl border border-white/10 bg-white/5 p-4">
-      <h3 className="text-lg font-medium text-white">
+    <div className="space-y-4 rounded-2xl border border-border bg-secondary/10 p-4">
+      <h3 className="text-lg font-medium text-foreground">
         Upload {documentType === "LOAN" ? "Loan Document" : "Receipt"}
       </h3>
 
@@ -120,16 +120,16 @@ export function DocumentUploader({
         type="file"
         accept="image/*,application/pdf"
         onChange={handleFileChange}
-        className="block w-full text-sm text-gray-400 file:mr-4 file:rounded-xl file:border-0 file:bg-indigo-500/20 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-indigo-300 hover:file:bg-indigo-500/30"
+        className="block w-full text-sm text-muted-foreground file:mr-4 file:rounded-xl file:border-0 file:bg-primary/20 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-primary hover:file:bg-primary/30"
       />
 
       {error && (
-        <p className="text-sm text-red-400" role="alert">
+        <p className="text-sm text-destructive" role="alert">
           {error}
         </p>
       )}
 
-      <Button
+      <UploadButton
         onClick={handleUploadAndExtract}
         disabled={!file || isUploading || isExtracting}
         loading={isUploading || isExtracting}
@@ -139,7 +139,7 @@ export function DocumentUploader({
           : isExtracting
             ? "Extracting Data (AI)..."
             : "Upload & Extract"}
-      </Button>
+      </UploadButton>
     </div>
   );
 }
