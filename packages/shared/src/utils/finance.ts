@@ -42,7 +42,7 @@ export function generateAmortizationSchedule(
   let outstandingBalance = principal;
   const schedule: AmortizationScheduleRow[] = [];
   
-  let currentDate = new Date(startDate);
+  let currentDate = new Date(startDate.getTime());
 
   for (let i = 1; i <= tenureMonths; i++) {
     // Increment month
@@ -60,7 +60,7 @@ export function generateAmortizationSchedule(
 
     schedule.push({
       month: i,
-      paymentDate: new Date(currentDate),
+      paymentDate: new Date(currentDate.getTime()),
       emiAmount,
       principalComponent,
       interestComponent,
