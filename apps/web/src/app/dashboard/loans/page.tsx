@@ -2,7 +2,7 @@ import React from 'react'
 import { cookies } from 'next/headers'
 import { Plus, Building2, Banknote, Calendar, ChevronRight } from 'lucide-react'
 import Link from 'next/link'
-import LoansClientPage from './LoansClientPage'
+import LoanActions from './LoanActions'
 
 export default async function LoansPage() {
   const token = cookies().get('auth_token')?.value
@@ -25,7 +25,13 @@ export default async function LoansPage() {
             <h1 className="text-3xl font-bold tracking-tight text-white drop-shadow-md mb-2">Loan Management</h1>
             <p className="text-sm text-gray-400">Track and manage your active loans and EMI schedules.</p>
           </div>
-          <LoansClientPage token={token || ''} />
+          <Link
+            href="/dashboard/loans/add"
+            className="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Loan
+          </Link>
         </div>
 
         {/* Loans Table */}
@@ -85,12 +91,7 @@ export default async function LoansPage() {
                         </div>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <Link 
-                          href={`/dashboard/loans/${loan.id}`}
-                          className="inline-flex items-center justify-center rounded-xl bg-white/5 p-2 text-gray-400 transition-all hover:bg-white/10 hover:text-white"
-                        >
-                          <ChevronRight className="h-4 w-4" />
-                        </Link>
+                        <LoanActions loanId={loan.id} token={token || ''} />
                       </td>
                     </tr>
                   ))}

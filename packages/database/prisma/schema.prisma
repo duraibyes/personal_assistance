@@ -29,6 +29,7 @@ model Loan {
   id                String   @id @default(uuid())
   userId            String
   user              User     @relation(fields: [userId], references: [id])
+  loanNumber        String?
   name              String
   lender            String
   loanType          String
@@ -53,7 +54,9 @@ model Loan {
   appliedDate       DateTime?
   endDate           DateTime?
   documentId        String?
+  isDeleted         Boolean  @default(false)
   
+  attachments       Document[] @relation("LoanAttachments")
   payments          LoanPayment[]
   
   createdAt         DateTime @default(now())
@@ -194,6 +197,9 @@ model Document {
   storageKey       String
   documentType     String
   processingStatus String   @default("UPLOADED") // UPLOADED, PROCESSING, EXTRACTED, NEEDS_REVIEW, VERIFIED, FAILED
+  
+  loanId           String?
+  loan             Loan?    @relation("LoanAttachments", fields: [loanId], references: [id])
   
   extractions      DocumentExtraction[]
 

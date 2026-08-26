@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { prisma } from '@repo/database';
-import { CreateLoanSchema } from '@repo/validation';
+import { CreateLoanSchema, UpdateLoanSchema } from '@repo/validation';
 import { validateBody } from '../middleware/validate.middleware';
 import { assertResourceAccess } from '../middleware/auth.middleware';
 
@@ -35,7 +35,7 @@ export const loansRouter: Router = Router();
 loansRouter.get('/', async (req, res) => {
   try {
     const userId = req.user!.id;
-    const where = req.user!.isAdmin ? {} : { userId };
+    const where = req.user!.isAdmin ? { isDeleted: false } : { userId, isDeleted: false };
     const loans = await prisma.loan.findMany({
       where,
       orderBy: { createdAt: 'desc' },
@@ -49,7 +49,10 @@ loansRouter.get('/', async (req, res) => {
 
 loansRouter.get('/:id', async (req, res) => {
   try {
-    const loan = await prisma.loan.findUnique({ where: { id: req.params.id } });
+    const loan = await prisma.loan.findFirst({
+      where: { id: req.params.id, isDeleted: false },
+      include: { attachments: true }
+    });
     if (!loan) {
       return res.status(404).json({ error: 'Loan not found' });
     }
@@ -75,6 +78,7 @@ loansRouter.post('/', validateBody(CreateLoanSchema), async (req, res) => {
     const loan = await prisma.loan.create({
       data: {
         userId,
+        loanNumber: data.loanNumber ?? null,
         name: data.name,
         lender: data.lender,
         loanType: data.loanType,
@@ -99,7 +103,11 @@ loansRouter.post('/', validateBody(CreateLoanSchema), async (req, res) => {
         appliedDate: data.appliedDate ? new Date(data.appliedDate) : null,
         endDate: data.endDate ? new Date(data.endDate) : null,
         documentId: data.documentId ?? null,
+        attachments: data.attachmentIds?.length ? {
+          connect: data.attachmentIds.map((id: string) => ({ id }))
+        } : undefined,
       },
+      include: { attachments: true },
     });
     res.status(201).json(loan);
   } catch (error) {
@@ -118,11 +126,70 @@ loansRouter.delete('/:id', async (req, res) => {
       return res.status(403).json({ error: 'Forbidden' });
     }
 
-    await prisma.loanPayment.deleteMany({ where: { loanId: loan.id } });
-    await prisma.loan.delete({ where: { id: loan.id } });
+    await prisma.loan.update({
+      where: { id: loan.id },
+      data: { isDeleted: true },
+    });
     res.status(204).send();
   } catch (error) {
     console.error('Delete loan error:', error);
     res.status(500).json({ error: 'Failed to delete loan' });
+  }
+});
+
+loansRouter.put('/:id', validateBody(UpdateLoanSchema), async (req, res) => {
+  try {
+    const loan = await prisma.loan.findUnique({ where: { id: req.params.id } });
+    if (!loan) {
+      return res.status(404).json({ error: 'Loan not found' });
+    }
+    if (!assertResourceAccess(req, loan.userId)) {
+      return res.status(403).json({ error: 'Forbidden' });
+    }
+
+    const data = req.body;
+    const remainingEmis = data.remainingEmis ?? data.numberOfEmis;
+    const outstandingAmount = data.outstandingAmount ?? data.principalAmount;
+    const nextEmiDate = data.nextEmiDate ?? data.firstEmiDate;
+
+    const updatedLoan = await prisma.loan.update({
+      where: { id: loan.id },
+      data: {
+        loanNumber: data.loanNumber,
+        name: data.name,
+        lender: data.lender,
+        loanType: data.loanType,
+        principalAmount: data.principalAmount,
+        interestRate: data.interestRate,
+        tenureMonths: data.tenureMonths,
+        emiAmount: data.emiAmount,
+        startDate: data.startDate ? new Date(data.startDate) : undefined,
+        firstEmiDate: data.firstEmiDate ? new Date(data.firstEmiDate) : undefined,
+        numberOfEmis: data.numberOfEmis,
+        paidEmis: data.paidEmis,
+        remainingEmis,
+        outstandingAmount,
+        nextEmiDate: nextEmiDate ? new Date(nextEmiDate) : undefined,
+        status: data.status,
+        processingFee: data.processingFee,
+        insuranceAmount: data.insuranceAmount,
+        bouncingCharge: data.bouncingCharge,
+        lenderAddress: data.lenderAddress,
+        lenderContact: data.lenderContact,
+        lenderEmail: data.lenderEmail,
+        appliedDate: data.appliedDate ? new Date(data.appliedDate) : undefined,
+        endDate: data.endDate ? new Date(data.endDate) : undefined,
+        documentId: data.documentId,
+        attachments: data.attachmentIds ? {
+          set: data.attachmentIds.map((id: string) => ({ id }))
+        } : undefined,
+      },
+      include: { attachments: true },
+    });
+
+    res.json(updatedLoan);
+  } catch (error) {
+    console.error('Update loan error:', error);
+    res.status(500).json({ error: 'Failed to update loan' });
   }
 });

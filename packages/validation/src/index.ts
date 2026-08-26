@@ -17,6 +17,7 @@ export const LoginSchema = z.object({
 });
 
 export const CreateLoanSchema = z.object({
+  loanNumber: z.string().optional().nullable(),
   name: z.string().min(1, "Loan name is required"),
   lender: z.string().min(1, "Lender name is required"),
   loanType: z.string().min(1, "Loan type is required"),
@@ -40,8 +41,11 @@ export const CreateLoanSchema = z.object({
   appliedDate: dateInput.optional().nullable(),
   endDate: dateInput.optional().nullable(),
   documentId: z.string().optional().nullable(),
+  attachmentIds: z.array(z.string()).optional(),
   paidEmis: z.coerce.number().int().nonnegative().optional(),
 });
+
+export const UpdateLoanSchema = CreateLoanSchema.partial();
 
 export const CreateExpenseSchema = z.object({
   amount: z.coerce.number().positive("Amount must be positive"),
