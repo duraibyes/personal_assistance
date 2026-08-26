@@ -122,8 +122,8 @@ router.get('/library', async (req: Request, res: Response) => {
     const usedExpenses = await prisma.expense.findMany({ where: { userId, documentId: { not: null } }, select: { documentId: true } });
     const usedIncomes = await prisma.income.findMany({ where: { userId, documentId: { not: null } }, select: { documentId: true } });
     const usedPurchases = await prisma.purchase.findMany({ where: { userId, documentId: { not: null } }, select: { documentId: true } });
-    const usedServices = await prisma.vehicleService.findMany({ where: { userId, documentId: { not: null } }, select: { documentId: true } });
-    const usedInsurances = await prisma.insurance.findMany({ where: { userId, documentId: { not: null } }, select: { documentId: true } });
+    const usedServices = await prisma.vehicleService.findMany({ where: { vehicle: { userId }, documentId: { not: null } }, select: { documentId: true } });
+    const usedInsurances = await prisma.insurance.findMany({ where: { vehicle: { userId }, documentId: { not: null } }, select: { documentId: true } });
 
     const usedIds = [
       ...usedLoans.map(l => l.documentId),
