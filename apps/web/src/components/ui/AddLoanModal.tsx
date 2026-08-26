@@ -11,6 +11,7 @@ import { Input } from './Input'
 import { Select } from './Select'
 import { SaveButton, CancelButton } from './Button'
 import { Modal } from './Modal'
+import { DocumentUploader } from '../DocumentUploader'
 
 const loanSchema = z.object({
   name: z.string().min(1, 'Loan Name is required'),
@@ -43,11 +44,13 @@ export default function AddLoanModal({
 }) {
   const router = useRouter()
   const [serverError, setServerError] = useState<string | null>(null)
+  const [uploadedDocumentId, setUploadedDocumentId] = useState<string | null>(null)
 
   const {
     register,
     handleSubmit,
     control,
+    setValue,
     formState: { errors, isValid, isSubmitting },
   } = useForm<LoanFormValues>({
     resolver: zodResolver(loanSchema),
@@ -72,6 +75,7 @@ export default function AddLoanModal({
     try {
       const payload = {
         ...data,
+        documentId: uploadedDocumentId,
         emiAmount: liveEmi,
         numberOfEmis: data.tenureMonths,
         remainingEmis: data.tenureMonths,
@@ -122,6 +126,28 @@ export default function AddLoanModal({
           {serverError && (
             <div className="mb-4 rounded-xl bg-red-500/20 p-3 text-sm text-red-200">{serverError}</div>
           )}
+
+          <div className="mb-6">
+            <DocumentUploader
+              entityId="pending-loan"
+              documentType="LOAN"
+              token={token}
+              onExtractionComplete={(result: any) => {
+                const data = result?.extraction?.structuredData || {}
+                if (data.loanName) setValue('name', data.loanName, { shouldValidate: true })
+                if (data.lender) setValue('lender', data.lender, { shouldValidate: true })
+                if (data.principalAmount) setValue('principalAmount', data.principalAmount, { shouldValidate: true })
+                if (data.interestRate) setValue('interestRate', data.interestRate, { shouldValidate: true })
+                if (data.tenureMonths) setValue('tenureMonths', data.tenureMonths, { shouldValidate: true })
+                if (data.emiDate) setValue('firstEmiDate', data.emiDate.substring(0, 10), { shouldValidate: true })
+                if (data.startDate) setValue('startDate', data.startDate.substring(0, 10), { shouldValidate: true })
+                
+                if (result?.document?.id) {
+                  setUploadedDocumentId(result.document.id)
+                }
+              }}
+            />
+          </div>
 
           <form id="loan-form" onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-2 gap-4" noValidate>
             <div className="md:col-span-2">

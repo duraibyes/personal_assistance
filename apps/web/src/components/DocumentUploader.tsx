@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Button } from "@/components/ui/Button";
+import imageCompression from "browser-image-compression";
 
 interface ExtractionResult {
   document: {
@@ -50,8 +51,23 @@ export function DocumentUploader({
       setIsUploading(true);
       setError("");
 
+      let fileToUpload = file;
+      
+      if (file.type.startsWith("image/")) {
+        const options = {
+          maxSizeMB: 1,
+          maxWidthOrHeight: 1920,
+          useWebWorker: true,
+        };
+        try {
+          fileToUpload = await imageCompression(file, options);
+        } catch (error) {
+          console.warn("Image compression failed, using original file", error);
+        }
+      }
+
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", fileToUpload);
       formData.append("documentType", documentType);
       formData.append("entityId", entityId);
 
