@@ -79,11 +79,13 @@ export class OcrService {
         });
       }
 
-      const responseText = response.text || '{}';
+      let responseText = response.text || '{}';
+      // Sometimes Gemini still wraps JSON in markdown fences even with responseMimeType
+      responseText = responseText.replace(/```json\n?/, '').replace(/```\n?$/, '').trim();
       return JSON.parse(responseText);
     } catch (error) {
       console.error('Error in OCR extraction:', error);
-      throw new Error('Failed to extract structured data from document.');
+      throw new Error(`Failed to extract structured data: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 

@@ -168,7 +168,7 @@ router.post('/:id/extract', async (req: Request, res: Response) => {
       // ignore secondary failure
     }
 
-    res.status(500).json({ error: 'Failed to extract data' });
+    res.status(500).json({ error: 'Failed to extract data: ' + (error instanceof Error ? error.message : String(error)) });
   }
 });
 
