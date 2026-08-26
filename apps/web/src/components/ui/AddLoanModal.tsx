@@ -23,6 +23,12 @@ const loanSchema = z.object({
   tenureMonths: z.coerce.number().int().positive('Must be at least 1 month'),
   startDate: z.string().min(1, 'Start Date is required'),
   firstEmiDate: z.string().min(1, 'First EMI Date is required'),
+  emiAmount: z.coerce.number().positive('Must be greater than 0').optional(),
+  bouncingCharge: z.coerce.number().nonnegative().optional(),
+  lenderAddress: z.string().optional(),
+  lenderContact: z.string().optional(),
+  lenderEmail: z.string().email('Invalid email').optional().or(z.literal('')),
+  endDate: z.string().optional(),
 })
 
 type LoanFormValues = z.infer<typeof loanSchema>
@@ -46,6 +52,7 @@ export default function AddLoanModal({
   const router = useRouter()
   const [serverError, setServerError] = useState<string | null>(null)
   const [uploadedDocumentId, setUploadedDocumentId] = useState<string | null>(null)
+  const [extractedData, setExtractedData] = useState<any>(null)
   
   const [activeTab, setActiveTab] = useState<'upload' | 'library'>('upload')
   const [libraryDocs, setLibraryDocs] = useState<any[]>([])
@@ -70,6 +77,7 @@ export default function AddLoanModal({
   const handleSelectLibraryDoc = (doc: any) => {
     setUploadedDocumentId(doc.id)
     const data = doc.extractions?.[0]?.structuredData || {}
+    setExtractedData(data)
     if (data.loanName) setValue('name', data.loanName, { shouldValidate: true })
     if (data.lender) setValue('lender', data.lender, { shouldValidate: true })
     if (data.principalAmount) setValue('principalAmount', data.principalAmount, { shouldValidate: true })
@@ -77,6 +85,12 @@ export default function AddLoanModal({
     if (data.tenureMonths) setValue('tenureMonths', data.tenureMonths, { shouldValidate: true })
     if (data.emiDate) setValue('firstEmiDate', data.emiDate.substring(0, 10), { shouldValidate: true })
     if (data.startDate) setValue('startDate', data.startDate.substring(0, 10), { shouldValidate: true })
+    if (data.emiAmount) setValue('emiAmount', data.emiAmount, { shouldValidate: true })
+    if (data.bouncingCharge) setValue('bouncingCharge', data.bouncingCharge, { shouldValidate: true })
+    if (data.lenderAddress) setValue('lenderAddress', data.lenderAddress, { shouldValidate: true })
+    if (data.lenderContact) setValue('lenderContact', data.lenderContact, { shouldValidate: true })
+    if (data.lenderEmail) setValue('lenderEmail', data.lenderEmail, { shouldValidate: true })
+    if (data.endDate) setValue('endDate', data.endDate.substring(0, 10), { shouldValidate: true })
   }
 
   const {
@@ -109,7 +123,7 @@ export default function AddLoanModal({
       const payload = {
         ...data,
         documentId: uploadedDocumentId,
-        emiAmount: liveEmi,
+        emiAmount: data.emiAmount || liveEmi,
         numberOfEmis: data.tenureMonths,
         remainingEmis: data.tenureMonths,
         outstandingAmount: data.principalAmount,
@@ -185,6 +199,7 @@ export default function AddLoanModal({
               token={token}
               onExtractionComplete={(result: any) => {
                 const data = result?.extraction?.structuredData || {}
+                setExtractedData(data)
                 if (data.loanName) setValue('name', data.loanName, { shouldValidate: true })
                 if (data.lender) setValue('lender', data.lender, { shouldValidate: true })
                 if (data.principalAmount) setValue('principalAmount', data.principalAmount, { shouldValidate: true })
@@ -192,6 +207,12 @@ export default function AddLoanModal({
                 if (data.tenureMonths) setValue('tenureMonths', data.tenureMonths, { shouldValidate: true })
                 if (data.emiDate) setValue('firstEmiDate', data.emiDate.substring(0, 10), { shouldValidate: true })
                 if (data.startDate) setValue('startDate', data.startDate.substring(0, 10), { shouldValidate: true })
+                if (data.emiAmount) setValue('emiAmount', data.emiAmount, { shouldValidate: true })
+                if (data.bouncingCharge) setValue('bouncingCharge', data.bouncingCharge, { shouldValidate: true })
+                if (data.lenderAddress) setValue('lenderAddress', data.lenderAddress, { shouldValidate: true })
+                if (data.lenderContact) setValue('lenderContact', data.lenderContact, { shouldValidate: true })
+                if (data.lenderEmail) setValue('lenderEmail', data.lenderEmail, { shouldValidate: true })
+                if (data.endDate) setValue('endDate', data.endDate.substring(0, 10), { shouldValidate: true })
                 
                 if (result?.document?.id) {
                   setUploadedDocumentId(result.document.id)
@@ -286,32 +307,100 @@ export default function AddLoanModal({
               {...register('startDate')}
             />
 
+            <Input
+              label="First EMI Date"
+              type="date"
+              error={errors.firstEmiDate?.message}
+              {...register('firstEmiDate')}
+            />
+
+            <Input
+              label="End Date"
+              type="date"
+              error={errors.endDate?.message}
+              {...register('endDate')}
+            />
+
+            <Input
+              label="Manual EMI Amount (₹)"
+              type="number"
+              step="0.01"
+              placeholder={`Auto: ₹${liveEmi.toFixed(2)}`}
+              error={errors.emiAmount?.message}
+              {...register('emiAmount')}
+            />
+
+            <Input
+              label="Bouncing Charge (₹)"
+              type="number"
+              step="0.01"
+              error={errors.bouncingCharge?.message}
+              {...register('bouncingCharge')}
+            />
+
+            <Input
+              label="Lender Contact"
+              placeholder="Phone number"
+              error={errors.lenderContact?.message}
+              {...register('lenderContact')}
+            />
+
+            <Input
+              label="Lender Email"
+              type="email"
+              placeholder="email@bank.com"
+              error={errors.lenderEmail?.message}
+              {...register('lenderEmail')}
+            />
+
             <div className="md:col-span-2">
               <Input
-                label="First EMI Date"
-                type="date"
-                error={errors.firstEmiDate?.message}
-                {...register('firstEmiDate')}
+                label="Lender Address"
+                placeholder="Full branch address"
+                error={errors.lenderAddress?.message}
+                {...register('lenderAddress')}
               />
             </div>
           </form>
         </div>
 
-        <div className="w-full md:w-64 bg-black/20 p-6 flex flex-col items-center justify-center border-t md:border-t-0 md:border-l border-white/10 shrink-0">
-          <h3 className="text-sm font-medium text-gray-400 mb-2">Monthly EMI Preview</h3>
-          <div className="text-4xl font-bold text-white mb-2 text-center">
-            ₹{liveEmi.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-          </div>
-          {principalAmount > 0 && liveEmi > 0 && (
-            <div className="text-xs text-gray-500 text-center">
-              Total Payment: ₹{(liveEmi * tenureMonths).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-              <br />
-              Total Interest: ₹
-              {((liveEmi * tenureMonths) - principalAmount).toLocaleString('en-IN', {
-                minimumFractionDigits: 2,
+        <div className="w-full md:w-80 bg-black/20 p-6 flex flex-col border-t md:border-t-0 md:border-l border-white/10 shrink-0 overflow-y-auto">
+          <h3 className="text-sm font-medium text-gray-400 mb-4 border-b border-white/10 pb-2">Extracted Document Data</h3>
+          
+          {extractedData ? (
+            <div className="space-y-3 text-sm text-gray-300">
+              {Object.entries(extractedData).map(([key, value]) => {
+                if (!value) return null;
+                return (
+                  <div key={key} className="flex flex-col">
+                    <span className="text-xs text-gray-500 font-medium uppercase tracking-wider">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
+                    <span className="font-semibold text-white break-words">{String(value)}</span>
+                  </div>
+                )
               })}
             </div>
+          ) : (
+            <div className="text-sm text-gray-500 text-center py-10">
+              Upload a document to see AI extracted details here.
+            </div>
           )}
+
+          <div className="mt-8 border-t border-white/10 pt-4">
+            <h3 className="text-sm font-medium text-gray-400 mb-2">Calculated EMI Preview</h3>
+            <div className="text-3xl font-bold text-white mb-2">
+              ₹{liveEmi.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            </div>
+            {principalAmount > 0 && liveEmi > 0 && (
+              <div className="text-xs text-gray-500">
+                Total Payment: ₹{(liveEmi * tenureMonths).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                <br />
+                Total Interest: ₹
+                {((liveEmi * tenureMonths) - principalAmount).toLocaleString('en-IN', {
+                  minimumFractionDigits: 2,
+                })}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

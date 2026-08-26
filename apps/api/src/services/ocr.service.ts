@@ -19,6 +19,10 @@ export interface LoanExtractionResult {
   interestRate?: number;
   processingFee?: number;
   insuranceAmount?: number;
+  bouncingCharge?: number;
+  lenderAddress?: string;
+  lenderContact?: string;
+  lenderEmail?: string;
 }
 
 export interface ExpenseExtractionResult {
@@ -175,6 +179,10 @@ Extract the following loan details from the document and return them as a strict
 - "interestRate": The annual interest rate percentage (number).
 - "processingFee": Any processing fees charged (number).
 - "insuranceAmount": Any insurance amount charged on the loan (number).
+- "bouncingCharge": Any EMI bounce or cheque return charges (number).
+- "lenderAddress": The full address of the lender/bank (string).
+- "lenderContact": The phone number or contact details of the lender (string).
+- "lenderEmail": The email address of the lender (string).
 If a field is not found, omit it from the JSON.
       `;
     } else {

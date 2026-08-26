@@ -33,6 +33,11 @@ export const CreateLoanSchema = z.object({
   status: z.string().optional(),
   processingFee: z.coerce.number().nonnegative().optional().nullable(),
   insuranceAmount: z.coerce.number().nonnegative().optional().nullable(),
+  bouncingCharge: z.coerce.number().nonnegative().optional().nullable(),
+  lenderAddress: z.string().optional().nullable(),
+  lenderContact: z.string().optional().nullable(),
+  lenderEmail: z.string().email("Invalid email address").optional().nullable().or(z.literal("")),
+  endDate: dateInput.optional().nullable(),
   documentId: z.string().optional().nullable(),
   paidEmis: z.coerce.number().int().nonnegative().optional(),
 });

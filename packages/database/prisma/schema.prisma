@@ -46,6 +46,11 @@ model Loan {
   status            String   @default("ACTIVE") // ACTIVE, CLOSED
   processingFee     Float?
   insuranceAmount   Float?
+  bouncingCharge    Float?
+  lenderAddress     String?
+  lenderContact     String?
+  lenderEmail       String?
+  endDate           DateTime?
   documentId        String?
   
   payments          LoanPayment[]

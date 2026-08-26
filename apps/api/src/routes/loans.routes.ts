@@ -92,6 +92,11 @@ loansRouter.post('/', validateBody(CreateLoanSchema), async (req, res) => {
         status: data.status ?? 'ACTIVE',
         processingFee: data.processingFee ?? null,
         insuranceAmount: data.insuranceAmount ?? null,
+        bouncingCharge: data.bouncingCharge ?? null,
+        lenderAddress: data.lenderAddress ?? null,
+        lenderContact: data.lenderContact ?? null,
+        lenderEmail: data.lenderEmail ?? null,
+        endDate: data.endDate ? new Date(data.endDate) : null,
         documentId: data.documentId ?? null,
       },
     });
