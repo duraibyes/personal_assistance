@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Banknote, Wallet, FileText, Menu, X } from 'lucide-react'
+import { LayoutDashboard, Banknote, Wallet, FileText, Menu, X, PieChart, TrendingUp, Repeat, Tags } from 'lucide-react'
 import { SignOutButton } from './SignOutButton'
 import { ThemeToggle } from './ThemeToggle'
 import { Logo } from '@/components/Logo'
@@ -14,8 +14,12 @@ export function SidebarNav({ userEmail }: { userEmail: string }) {
 
   const links = [
     { href: '/dashboard', label: 'Overview', icon: LayoutDashboard, color: 'text-indigo-400' },
+    { href: '/dashboard/finance', label: 'Finance', icon: PieChart, color: 'text-sky-400' },
     { href: '/dashboard/loans', label: 'Loans', icon: Banknote, color: 'text-emerald-400' },
     { href: '/dashboard/expenses', label: 'Expenses', icon: Wallet, color: 'text-rose-400' },
+    { href: '/dashboard/income', label: 'Income', icon: TrendingUp, color: 'text-teal-400' },
+    { href: '/dashboard/recurring', label: 'Recurring', icon: Repeat, color: 'text-violet-400' },
+    { href: '/dashboard/categories', label: 'Categories', icon: Tags, color: 'text-amber-400' },
     { href: '/dashboard/documents', label: 'Documents', icon: FileText, color: 'text-amber-400' },
   ]
 

@@ -50,6 +50,7 @@ export const UpdateLoanSchema = CreateLoanSchema.partial();
 export const CreateExpenseSchema = z.object({
   amount: z.coerce.number().positive("Amount must be positive"),
   category: z.string().min(1, "Category is required"),
+  categoryId: z.string().optional().nullable(),
   description: z.string().min(1, "Description is required"),
   date: dateInput,
   paymentMethod: z.string().min(1, "Payment method is required"),
@@ -59,7 +60,50 @@ export const CreateExpenseSchema = z.object({
   documentId: z.string().optional().nullable(),
 });
 
+export const UpdateExpenseSchema = CreateExpenseSchema.partial();
+
+export const CreateIncomeSchema = z.object({
+  amount: z.coerce.number().positive("Amount must be positive"),
+  source: z.string().min(1, "Source is required"),
+  categoryId: z.string().optional().nullable(),
+  description: z.string().optional().nullable(),
+  date: dateInput,
+  documentId: z.string().optional().nullable(),
+});
+
+export const UpdateIncomeSchema = CreateIncomeSchema.partial();
+
+export const CreateCategorySchema = z.object({
+  name: z.string().min(1, "Category name is required"),
+  type: z.enum(["EXPENSE", "INCOME", "BOTH"]).default("EXPENSE"),
+  icon: z.string().optional().nullable(),
+});
+
+export const UpdateCategorySchema = z.object({
+  name: z.string().min(1).optional(),
+  type: z.enum(["EXPENSE", "INCOME", "BOTH"]).optional(),
+  icon: z.string().optional().nullable(),
+  isActive: z.boolean().optional(),
+});
+
+export const CreateRecurringExpenseSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  amount: z.coerce.number().positive("Amount must be positive"),
+  categoryId: z.string().optional().nullable(),
+  frequency: z.enum(["MONTHLY", "QUARTERLY", "HALF_YEARLY", "YEARLY", "CUSTOM"]),
+  nextDueDate: dateInput,
+  lastPaymentDate: dateInput.optional().nullable(),
+  paymentMethod: z.string().min(1, "Payment method is required"),
+  notes: z.string().optional().nullable(),
+  isActive: z.boolean().optional(),
+});
+
+export const UpdateRecurringExpenseSchema = CreateRecurringExpenseSchema.partial();
+
 export type SignupInput = z.infer<typeof SignupSchema>;
 export type LoginInput = z.infer<typeof LoginSchema>;
 export type CreateLoanInput = z.infer<typeof CreateLoanSchema>;
 export type CreateExpenseInput = z.infer<typeof CreateExpenseSchema>;
+export type CreateIncomeInput = z.infer<typeof CreateIncomeSchema>;
+export type CreateCategoryInput = z.infer<typeof CreateCategorySchema>;
+export type CreateRecurringExpenseInput = z.infer<typeof CreateRecurringExpenseSchema>;

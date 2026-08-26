@@ -1,39 +1,38 @@
 import { Router } from 'express';
 import { prisma } from '@repo/database';
-import { CreateExpenseSchema, UpdateExpenseSchema } from '@repo/validation';
+import { CreateIncomeSchema, UpdateIncomeSchema } from '@repo/validation';
 import { validateBody } from '../middleware/validate.middleware';
 import { assertResourceAccess } from '../middleware/auth.middleware';
 
-export const expensesRouter: Router = Router();
+export const incomesRouter: Router = Router();
 
 /**
  * @openapi
- * /api/expenses:
+ * /api/incomes:
  *   get:
- *     tags: [Expenses]
- *     summary: List expenses for the authenticated user (search, filter, paginate)
+ *     tags: [Incomes]
+ *     summary: List income records for the authenticated user (search, filter, paginate)
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Paginated list of expenses
+ *         description: Paginated list of income records
  *   post:
- *     tags: [Expenses]
- *     summary: Create an expense
+ *     tags: [Incomes]
+ *     summary: Create an income record
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       201:
- *         description: Expense created
+ *         description: Income created
  */
-expensesRouter.get('/', async (req, res) => {
+incomesRouter.get('/', async (req, res) => {
   try {
     const userId = req.user!.id;
     const page = Math.max(1, parseInt(req.query.page as string, 10) || 1);
     const pageSize = Math.min(50, Math.max(1, parseInt(req.query.pageSize as string, 10) || 10));
     const search = (req.query.search as string || '').trim();
     const categoryId = req.query.categoryId as string | undefined;
-    const paymentMethod = req.query.paymentMethod as string | undefined;
     const dateFrom = req.query.dateFrom as string | undefined;
     const dateTo = req.query.dateTo as string | undefined;
     const minAmount = req.query.minAmount as string | undefined;
@@ -41,7 +40,6 @@ expensesRouter.get('/', async (req, res) => {
 
     const where: any = req.user!.isAdmin ? {} : { userId };
     if (categoryId) where.categoryId = categoryId;
-    if (paymentMethod) where.paymentMethod = paymentMethod;
     if (dateFrom || dateTo) {
       where.date = {};
       if (dateFrom) where.date.gte = new Date(dateFrom);
@@ -54,21 +52,20 @@ expensesRouter.get('/', async (req, res) => {
     }
     if (search) {
       where.OR = [
+        { source: { contains: search, mode: 'insensitive' } },
         { description: { contains: search, mode: 'insensitive' } },
-        { vendorName: { contains: search, mode: 'insensitive' } },
-        { category: { contains: search, mode: 'insensitive' } },
       ];
     }
 
     const [data, total] = await Promise.all([
-      prisma.expense.findMany({
+      prisma.income.findMany({
         where,
         include: { categoryRef: true },
         orderBy: { date: 'desc' },
         skip: (page - 1) * pageSize,
         take: pageSize,
       }),
-      prisma.expense.count({ where }),
+      prisma.income.count({ where }),
     ]);
 
     res.json({
@@ -79,104 +76,96 @@ expensesRouter.get('/', async (req, res) => {
       totalPages: Math.max(1, Math.ceil(total / pageSize)),
     });
   } catch (error) {
-    console.error('Fetch expenses error:', error);
-    res.status(500).json({ error: 'Failed to fetch expenses' });
+    console.error('Fetch incomes error:', error);
+    res.status(500).json({ error: 'Failed to fetch income records' });
   }
 });
 
-expensesRouter.get('/:id', async (req, res) => {
+incomesRouter.get('/:id', async (req, res) => {
   try {
-    const expense = await prisma.expense.findUnique({
+    const income = await prisma.income.findUnique({
       where: { id: req.params.id },
       include: { categoryRef: true },
     });
-    if (!expense) {
-      return res.status(404).json({ error: 'Expense not found' });
+    if (!income) {
+      return res.status(404).json({ error: 'Income not found' });
     }
-    if (!assertResourceAccess(req, expense.userId)) {
+    if (!assertResourceAccess(req, income.userId)) {
       return res.status(403).json({ error: 'Forbidden' });
     }
-    res.json(expense);
+    res.json(income);
   } catch (error) {
-    console.error('Fetch expense error:', error);
-    res.status(500).json({ error: 'Failed to fetch expense' });
+    console.error('Fetch income error:', error);
+    res.status(500).json({ error: 'Failed to fetch income' });
   }
 });
 
-expensesRouter.post('/', validateBody(CreateExpenseSchema), async (req, res) => {
+incomesRouter.post('/', validateBody(CreateIncomeSchema), async (req, res) => {
   try {
     const userId = req.user!.id;
     const data = req.body;
 
-    const expense = await prisma.expense.create({
+    const income = await prisma.income.create({
       data: {
         userId,
         amount: data.amount,
-        category: data.category,
+        source: data.source,
         categoryId: data.categoryId ?? null,
-        description: data.description,
+        description: data.description ?? null,
         date: new Date(data.date),
-        paymentMethod: data.paymentMethod,
-        vendorName: data.vendorName ?? null,
-        transactionId: data.transactionId ?? null,
-        upiId: data.upiId ?? null,
         documentId: data.documentId ?? null,
       },
     });
-    res.status(201).json(expense);
+    res.status(201).json(income);
   } catch (error) {
-    console.error('Create expense error:', error);
-    res.status(500).json({ error: 'Failed to create expense' });
+    console.error('Create income error:', error);
+    res.status(500).json({ error: 'Failed to create income' });
   }
 });
 
-expensesRouter.put('/:id', validateBody(UpdateExpenseSchema), async (req, res) => {
+incomesRouter.put('/:id', validateBody(UpdateIncomeSchema), async (req, res) => {
   try {
-    const expense = await prisma.expense.findUnique({ where: { id: req.params.id } });
-    if (!expense) {
-      return res.status(404).json({ error: 'Expense not found' });
+    const income = await prisma.income.findUnique({ where: { id: req.params.id } });
+    if (!income) {
+      return res.status(404).json({ error: 'Income not found' });
     }
-    if (!assertResourceAccess(req, expense.userId)) {
+    if (!assertResourceAccess(req, income.userId)) {
       return res.status(403).json({ error: 'Forbidden' });
     }
 
     const data = req.body;
-    const updated = await prisma.expense.update({
-      where: { id: expense.id },
+    const updated = await prisma.income.update({
+      where: { id: income.id },
       data: {
         amount: data.amount,
-        category: data.category,
+        source: data.source,
         categoryId: data.categoryId,
         description: data.description,
         date: data.date ? new Date(data.date) : undefined,
-        paymentMethod: data.paymentMethod,
-        vendorName: data.vendorName,
-        transactionId: data.transactionId,
-        upiId: data.upiId,
         documentId: data.documentId,
       },
     });
     res.json(updated);
   } catch (error) {
-    console.error('Update expense error:', error);
-    res.status(500).json({ error: 'Failed to update expense' });
+    console.error('Update income error:', error);
+    res.status(500).json({ error: 'Failed to update income' });
   }
 });
 
-expensesRouter.delete('/:id', async (req, res) => {
+incomesRouter.delete('/:id', async (req, res) => {
   try {
-    const expense = await prisma.expense.findUnique({ where: { id: req.params.id } });
-    if (!expense) {
-      return res.status(404).json({ error: 'Expense not found' });
+    const income = await prisma.income.findUnique({ where: { id: req.params.id } });
+    if (!income) {
+      return res.status(404).json({ error: 'Income not found' });
     }
-    if (!assertResourceAccess(req, expense.userId)) {
+    if (!assertResourceAccess(req, income.userId)) {
       return res.status(403).json({ error: 'Forbidden' });
     }
 
-    await prisma.expense.delete({ where: { id: expense.id } });
+    await prisma.income.delete({ where: { id: income.id } });
     res.status(204).send();
   } catch (error) {
-    console.error('Delete expense error:', error);
-    res.status(500).json({ error: 'Failed to delete expense' });
+    console.error('Delete income error:', error);
+    res.status(500).json({ error: 'Failed to delete income' });
   }
 });

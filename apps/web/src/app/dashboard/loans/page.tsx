@@ -39,7 +39,12 @@ export default async function LoansPage({
     )
 
     if (res.ok) {
-      result = await res.json()
+      const json = await res.json()
+      if (json && Array.isArray(json.data)) {
+        result = json
+      } else {
+        console.error('Unexpected /loans response shape:', json)
+      }
     }
   } catch (error) {
     console.error('Failed to fetch loans:', error)

@@ -5,6 +5,9 @@ import { authRouter } from './routes/auth.routes';
 import documentsRouter from './routes/documents.routes';
 import { loansRouter } from './routes/loans.routes';
 import { expensesRouter } from './routes/expenses.routes';
+import { incomesRouter } from './routes/incomes.routes';
+import { categoriesRouter } from './routes/categories.routes';
+import { recurringRouter } from './routes/recurring.routes';
 import { dashboardRouter } from './routes/dashboard.routes';
 import { requireAuth, getJwtSecret } from './middleware/auth.middleware';
 import { setupSwagger } from './swagger';
@@ -44,6 +47,9 @@ app.use("/api/auth", authRouter);
 app.use("/api/documents", requireAuth, documentsRouter);
 app.use("/api/loans", requireAuth, loansRouter);
 app.use("/api/expenses", requireAuth, expensesRouter);
+app.use("/api/incomes", requireAuth, incomesRouter);
+app.use("/api/categories", requireAuth, categoriesRouter);
+app.use("/api/recurring", requireAuth, recurringRouter);
 app.use("/api/dashboard", requireAuth, dashboardRouter);
 
 app.use((_req: Request, res: Response) => {

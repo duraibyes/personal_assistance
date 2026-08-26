@@ -3,8 +3,8 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
 }
 
@@ -17,18 +17,63 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  loans            Loan[]
-  expenses         Expense[]
-  incomes          Income[]
-  purchases        Purchase[]
-  vehicles         Vehicle[]
-  documents        Document[]
+  loans             Loan[]
+  expenses          Expense[]
+  incomes           Income[]
+  purchases         Purchase[]
+  vehicles          Vehicle[]
+  documents         Document[]
+  expenseCategories ExpenseCategory[]
+  recurringExpenses RecurringExpense[]
+}
+
+model ExpenseCategory {
+  id       String  @id @default(uuid())
+  userId   String?
+  user     User?   @relation(fields: [userId], references: [id])
+  name     String
+  type     String  @default("EXPENSE") // EXPENSE, INCOME, BOTH
+  icon     String?
+  isActive Boolean @default(true)
+  isSystem Boolean @default(false)
+
+  expenses          Expense[]
+  incomes           Income[]
+  recurringExpenses RecurringExpense[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([type])
+}
+
+model RecurringExpense {
+  id              String           @id @default(uuid())
+  userId          String
+  user            User             @relation(fields: [userId], references: [id])
+  title           String
+  amount          Float
+  categoryId      String?
+  category        ExpenseCategory? @relation(fields: [categoryId], references: [id])
+  frequency       String // MONTHLY, QUARTERLY, HALF_YEARLY, YEARLY, CUSTOM
+  nextDueDate     DateTime
+  lastPaymentDate DateTime?
+  paymentMethod   String
+  notes           String?
+  isActive        Boolean          @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([userId, nextDueDate])
 }
 
 model Loan {
-  id                String   @id @default(uuid())
+  id                String    @id @default(uuid())
   userId            String
-  user              User     @relation(fields: [userId], references: [id])
+  user              User      @relation(fields: [userId], references: [id])
   loanNumber        String?
   name              String
   lender            String
@@ -40,11 +85,11 @@ model Loan {
   startDate         DateTime
   firstEmiDate      DateTime
   numberOfEmis      Int
-  paidEmis          Int      @default(0)
+  paidEmis          Int       @default(0)
   remainingEmis     Int
   outstandingAmount Float
   nextEmiDate       DateTime
-  status            String   @default("ACTIVE") // ACTIVE, CLOSED
+  status            String    @default("ACTIVE") // ACTIVE, CLOSED
   processingFee     Float?
   insuranceAmount   Float?
   bouncingCharge    Float?
@@ -54,32 +99,37 @@ model Loan {
   appliedDate       DateTime?
   endDate           DateTime?
   documentId        String?
-  isDeleted         Boolean  @default(false)
-  
-  attachments       Document[] @relation("LoanAttachments")
-  payments          LoanPayment[]
-  
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  isDeleted         Boolean   @default(false)
+
+  attachments Document[]    @relation("LoanAttachments")
+  payments    LoanPayment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, status])
+  @@index([userId, nextEmiDate])
 }
 
 model LoanPayment {
-  id            String   @id @default(uuid())
-  loanId        String
-  loan          Loan     @relation(fields: [loanId], references: [id])
-  amount        Float
-  paymentDate   DateTime
-  notes         String?
-  
-  createdAt     DateTime @default(now())
+  id          String   @id @default(uuid())
+  loanId      String
+  loan        Loan     @relation(fields: [loanId], references: [id])
+  amount      Float
+  paymentDate DateTime
+  notes       String?
+
+  createdAt DateTime @default(now())
 }
 
 model Expense {
-  id            String   @id @default(uuid())
+  id            String           @id @default(uuid())
   userId        String
-  user          User     @relation(fields: [userId], references: [id])
+  user          User             @relation(fields: [userId], references: [id])
   amount        Float
   category      String
+  categoryId    String?
+  categoryRef   ExpenseCategory? @relation(fields: [categoryId], references: [id])
   description   String
   date          DateTime
   paymentMethod String
@@ -88,22 +138,30 @@ model Expense {
   upiId         String?
   documentId    String?
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, date])
+  @@index([categoryId])
 }
 
 model Income {
-  id          String   @id @default(uuid())
+  id          String           @id @default(uuid())
   userId      String
-  user        User     @relation(fields: [userId], references: [id])
+  user        User             @relation(fields: [userId], references: [id])
   amount      Float
   source      String
+  categoryId  String?
+  categoryRef ExpenseCategory? @relation(fields: [categoryId], references: [id])
   description String?
   date        DateTime
   documentId  String?
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, date])
+  @@index([categoryId])
 }
 
 model Purchase {
@@ -118,14 +176,14 @@ model Purchase {
   notes        String?
   documentId   String?
 
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Vehicle {
-  id                 String   @id @default(uuid())
+  id                 String    @id @default(uuid())
   userId             String
-  user               User     @relation(fields: [userId], references: [id])
+  user               User      @relation(fields: [userId], references: [id])
   name               String
   manufacturer       String
   model              String
@@ -133,13 +191,13 @@ model Vehicle {
   purchaseDate       DateTime?
   purchasePrice      Float?
   currentMileage     Int?
-  
-  services           VehicleService[]
-  fuelEntries        FuelEntry[]
-  insurances         Insurance[]
 
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  services    VehicleService[]
+  fuelEntries FuelEntry[]
+  insurances  Insurance[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model VehicleService {
@@ -154,8 +212,8 @@ model VehicleService {
   notes       String?
   documentId  String?
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model FuelEntry {
@@ -169,8 +227,8 @@ model FuelEntry {
   mileage       Int?
   station       String?
 
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Insurance {
@@ -184,27 +242,27 @@ model Insurance {
   premium      Float
   documentId   String?
 
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Document {
-  id               String   @id @default(uuid())
+  id               String @id @default(uuid())
   userId           String
-  user             User     @relation(fields: [userId], references: [id])
+  user             User   @relation(fields: [userId], references: [id])
   fileName         String
   mimeType         String
   storageKey       String
   documentType     String
-  processingStatus String   @default("UPLOADED") // UPLOADED, PROCESSING, EXTRACTED, NEEDS_REVIEW, VERIFIED, FAILED
-  
-  loanId           String?
-  loan             Loan?    @relation("LoanAttachments", fields: [loanId], references: [id])
-  
-  extractions      DocumentExtraction[]
+  processingStatus String @default("UPLOADED") // UPLOADED, PROCESSING, EXTRACTED, NEEDS_REVIEW, VERIFIED, FAILED
 
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  loanId String?
+  loan   Loan?   @relation("LoanAttachments", fields: [loanId], references: [id])
+
+  extractions DocumentExtraction[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model DocumentExtraction {
@@ -214,7 +272,7 @@ model DocumentExtraction {
   extractedText    String?
   structuredData   Json?
   processingStatus String
-  
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

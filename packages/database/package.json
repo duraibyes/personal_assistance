@@ -11,8 +11,12 @@
     "migrate:deploy": "prisma migrate deploy",
     "migrate:reset": "prisma migrate reset",
     "studio": "prisma studio",
+    "seed": "prisma db seed",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit"
+  },
+  "prisma": {
+    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0"
@@ -22,6 +26,7 @@
     "@repo/typescript-config": "workspace:*",
     "@types/node": "^26.2.0",
     "prisma": "^5.13.0",
+    "ts-node": "^10.9.2",
     "typescript": "^5.4.5"
   }
 }

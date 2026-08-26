@@ -31,6 +31,18 @@
     --brand-blue: 211 85% 50%;
     --brand-green: 142 60% 42%;
     --brand-gold: 42 96% 55%;
+
+    /* Chart palette (validated via dataviz skill's validate_palette.js) */
+    --chart-income: #2a78d6;
+    --chart-expense: #e34948;
+    --chart-cat-1: #2a78d6;
+    --chart-cat-2: #eb6834;
+    --chart-cat-3: #1baf7a;
+    --chart-cat-4: #eda100;
+    --chart-cat-5: #e87ba4;
+    --chart-cat-6: #008300;
+    --chart-cat-7: #4a3aa7;
+    --chart-cat-8: #e34948;
   }
 
   .dark {
@@ -53,6 +65,18 @@
     --border: 222 25% 18%;
     --input: 222 25% 18%;
     --ring: 211 90% 58%;
+
+    /* Chart palette — dark steps of the same validated set */
+    --chart-income: #3987e5;
+    --chart-expense: #e66767;
+    --chart-cat-1: #3987e5;
+    --chart-cat-2: #d95926;
+    --chart-cat-3: #199e70;
+    --chart-cat-4: #c98500;
+    --chart-cat-5: #d55181;
+    --chart-cat-6: #008300;
+    --chart-cat-7: #9085e9;
+    --chart-cat-8: #e66767;
   }
 }
 
