@@ -96,6 +96,7 @@ loansRouter.post('/', validateBody(CreateLoanSchema), async (req, res) => {
         lenderAddress: data.lenderAddress ?? null,
         lenderContact: data.lenderContact ?? null,
         lenderEmail: data.lenderEmail ?? null,
+        appliedDate: data.appliedDate ? new Date(data.appliedDate) : null,
         endDate: data.endDate ? new Date(data.endDate) : null,
         documentId: data.documentId ?? null,
       },

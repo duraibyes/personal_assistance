@@ -23,6 +23,9 @@ export interface LoanExtractionResult {
   lenderAddress?: string;
   lenderContact?: string;
   lenderEmail?: string;
+  appliedDate?: string;
+  startDate?: string;
+  tenureMonths?: number;
 }
 
 export interface ExpenseExtractionResult {
@@ -174,8 +177,11 @@ Extract the following loan details from the document and return them as a strict
 - "loanName": Name of the loan or lender (string).
 - "principalAmount": The total loan amount (number).
 - "emiAmount": The monthly EMI amount (number).
-- "emiDate": The day or date the EMI is due (string, ISO format if possible).
+- "emiDate": The day or date the EMI is due, often called First EMI Date (string, ISO format if possible).
+- "startDate": The start date of the loan (string, ISO format if possible).
+- "appliedDate": The date the loan was applied for or the transaction date (string, ISO format if possible).
 - "endDate": The end date of the loan (string, ISO format if possible).
+- "tenureMonths": The total duration or tenure of the loan in months (number).
 - "interestRate": The annual interest rate percentage (number).
 - "processingFee": Any processing fees charged (number).
 - "insuranceAmount": Any insurance amount charged on the loan (number).

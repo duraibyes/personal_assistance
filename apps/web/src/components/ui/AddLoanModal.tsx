@@ -9,7 +9,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Input } from './Input'
 import { Select } from './Select'
-import { SaveButton, CancelButton } from './Button'
+import { SaveButton, CancelButton, Button } from './Button'
 import { Modal } from './Modal'
 import { DocumentUploader } from '../DocumentUploader'
 import { FileText, Loader2 } from 'lucide-react'
@@ -23,7 +23,7 @@ const loanSchema = z.object({
   tenureMonths: z.coerce.number().int().positive('Must be at least 1 month'),
   startDate: z.string().min(1, 'Start Date is required'),
   firstEmiDate: z.string().min(1, 'First EMI Date is required'),
-  emiAmount: z.coerce.number().positive('Must be greater than 0').optional(),
+  emiAmount: z.coerce.number().positive('Must be greater than 0'),
   bouncingCharge: z.coerce.number().nonnegative().optional(),
   lenderAddress: z.string().optional(),
   lenderContact: z.string().optional(),
@@ -53,7 +53,7 @@ export default function AddLoanModal({
   const [serverError, setServerError] = useState<string | null>(null)
   const [uploadedDocumentId, setUploadedDocumentId] = useState<string | null>(null)
   const [extractedData, setExtractedData] = useState<any>(null)
-  
+
   const [activeTab, setActiveTab] = useState<'upload' | 'library'>('upload')
   const [libraryDocs, setLibraryDocs] = useState<any[]>([])
   const [isLoadingLibrary, setIsLoadingLibrary] = useState(false)
@@ -160,7 +160,7 @@ export default function AddLoanModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      maxWidth="max-w-4xl"
+      maxWidth="max-w-7xl"
       title={
         <>
           <Calculator className="h-5 w-5 text-indigo-400" />
@@ -176,13 +176,13 @@ export default function AddLoanModal({
 
           <div className="mb-6 bg-white/5 p-4 rounded-xl border border-white/10">
             <div className="flex gap-4 mb-4 border-b border-white/10 pb-2">
-              <button
+              <Button
                 type="button"
                 onClick={() => setActiveTab('upload')}
                 className={`text-sm font-medium transition-colors ${activeTab === 'upload' ? 'text-indigo-400' : 'text-gray-400 hover:text-gray-300'}`}
               >
                 Upload New
-              </button>
+              </Button>
               <button
                 type="button"
                 onClick={() => { setActiveTab('library'); fetchLibrary(); }}
@@ -194,31 +194,31 @@ export default function AddLoanModal({
 
             {activeTab === 'upload' ? (
               <DocumentUploader
-              entityId="pending-loan"
-              documentType="LOAN"
-              token={token}
-              onExtractionComplete={(result: any) => {
-                const data = result?.extraction?.structuredData || {}
-                setExtractedData(data)
-                if (data.loanName) setValue('name', data.loanName, { shouldValidate: true })
-                if (data.lender) setValue('lender', data.lender, { shouldValidate: true })
-                if (data.principalAmount) setValue('principalAmount', data.principalAmount, { shouldValidate: true })
-                if (data.interestRate) setValue('interestRate', data.interestRate, { shouldValidate: true })
-                if (data.tenureMonths) setValue('tenureMonths', data.tenureMonths, { shouldValidate: true })
-                if (data.emiDate) setValue('firstEmiDate', data.emiDate.substring(0, 10), { shouldValidate: true })
-                if (data.startDate) setValue('startDate', data.startDate.substring(0, 10), { shouldValidate: true })
-                if (data.emiAmount) setValue('emiAmount', data.emiAmount, { shouldValidate: true })
-                if (data.bouncingCharge) setValue('bouncingCharge', data.bouncingCharge, { shouldValidate: true })
-                if (data.lenderAddress) setValue('lenderAddress', data.lenderAddress, { shouldValidate: true })
-                if (data.lenderContact) setValue('lenderContact', data.lenderContact, { shouldValidate: true })
-                if (data.lenderEmail) setValue('lenderEmail', data.lenderEmail, { shouldValidate: true })
-                if (data.endDate) setValue('endDate', data.endDate.substring(0, 10), { shouldValidate: true })
-                
-                if (result?.document?.id) {
-                  setUploadedDocumentId(result.document.id)
-                }
-              }}
-            />
+                entityId="pending-loan"
+                documentType="LOAN"
+                token={token}
+                onExtractionComplete={(result: any) => {
+                  const data = result?.extraction?.structuredData || {}
+                  setExtractedData(data)
+                  if (data.loanName) setValue('name', data.loanName, { shouldValidate: true })
+                  if (data.lender) setValue('lender', data.lender, { shouldValidate: true })
+                  if (data.principalAmount) setValue('principalAmount', data.principalAmount, { shouldValidate: true })
+                  if (data.interestRate) setValue('interestRate', data.interestRate, { shouldValidate: true })
+                  if (data.tenureMonths) setValue('tenureMonths', data.tenureMonths, { shouldValidate: true })
+                  if (data.emiDate) setValue('firstEmiDate', data.emiDate.substring(0, 10), { shouldValidate: true })
+                  if (data.startDate) setValue('startDate', data.startDate.substring(0, 10), { shouldValidate: true })
+                  if (data.emiAmount) setValue('emiAmount', data.emiAmount, { shouldValidate: true })
+                  if (data.bouncingCharge) setValue('bouncingCharge', data.bouncingCharge, { shouldValidate: true })
+                  if (data.lenderAddress) setValue('lenderAddress', data.lenderAddress, { shouldValidate: true })
+                  if (data.lenderContact) setValue('lenderContact', data.lenderContact, { shouldValidate: true })
+                  if (data.lenderEmail) setValue('lenderEmail', data.lenderEmail, { shouldValidate: true })
+                  if (data.endDate) setValue('endDate', data.endDate.substring(0, 10), { shouldValidate: true })
+
+                  if (result?.document?.id) {
+                    setUploadedDocumentId(result.document.id)
+                  }
+                }}
+              />
             ) : (
               <div className="min-h-[150px]">
                 {isLoadingLibrary ? (
@@ -233,7 +233,7 @@ export default function AddLoanModal({
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
                     {libraryDocs.map(doc => (
-                      <div 
+                      <div
                         key={doc.id}
                         onClick={() => handleSelectLibraryDoc(doc)}
                         className={`p-3 rounded-lg border cursor-pointer transition-all flex items-start gap-3 ${uploadedDocumentId === doc.id ? 'bg-indigo-500/20 border-indigo-500' : 'bg-black/20 border-white/5 hover:border-white/20 hover:bg-black/40'}`}
@@ -366,7 +366,7 @@ export default function AddLoanModal({
 
         <div className="w-full md:w-80 bg-black/20 p-6 flex flex-col border-t md:border-t-0 md:border-l border-white/10 shrink-0 overflow-y-auto">
           <h3 className="text-sm font-medium text-gray-400 mb-4 border-b border-white/10 pb-2">Extracted Document Data</h3>
-          
+
           {extractedData ? (
             <div className="space-y-3 text-sm text-gray-300">
               {Object.entries(extractedData).map(([key, value]) => {

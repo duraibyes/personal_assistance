@@ -12,6 +12,7 @@ export default async function DashboardPage() {
 
   // Default values if API fails
   let summary = {
+    totalLoansCount: 0,
     totalLoansAmount: 0,
     totalMonthlyEmi: 0,
     totalExpensesThisMonth: 0,
@@ -37,7 +38,10 @@ export default async function DashboardPage() {
               <Banknote className="h-4 w-4" />
             </div>
           </div>
-          <p className="text-3xl font-bold text-white">₹{summary.totalLoansAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
+          <div className="flex flex-col">
+            <span className="text-3xl font-bold text-white">{summary.totalLoansCount}</span>
+            <span className="text-sm text-gray-400 mt-1">₹{summary.totalLoansAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+          </div>
         </div>
         
         <div className="rounded-3xl border border-white/5 bg-white/5 p-6 backdrop-blur-xl transition-all hover:bg-white/10 group">

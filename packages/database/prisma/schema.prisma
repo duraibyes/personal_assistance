@@ -50,6 +50,7 @@ model Loan {
   lenderAddress     String?
   lenderContact     String?
   lenderEmail       String?
+  appliedDate       DateTime?
   endDate           DateTime?
   documentId        String?
   

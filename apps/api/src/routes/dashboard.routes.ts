@@ -39,6 +39,7 @@ dashboardRouter.get('/summary', async (req, res) => {
     const activeVehiclesCount = await prisma.vehicle.count({ where });
 
     res.json({
+      totalLoansCount: loans.length,
       totalLoansAmount,
       totalMonthlyEmi,
       totalExpensesThisMonth,
