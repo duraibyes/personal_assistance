@@ -12,6 +12,7 @@ import { Select } from './Select'
 import { SaveButton, CancelButton } from './Button'
 import { Modal } from './Modal'
 import { DocumentUploader } from '../DocumentUploader'
+import { FileText, Loader2 } from 'lucide-react'
 
 const loanSchema = z.object({
   name: z.string().min(1, 'Loan Name is required'),
@@ -45,6 +46,38 @@ export default function AddLoanModal({
   const router = useRouter()
   const [serverError, setServerError] = useState<string | null>(null)
   const [uploadedDocumentId, setUploadedDocumentId] = useState<string | null>(null)
+  
+  const [activeTab, setActiveTab] = useState<'upload' | 'library'>('upload')
+  const [libraryDocs, setLibraryDocs] = useState<any[]>([])
+  const [isLoadingLibrary, setIsLoadingLibrary] = useState(false)
+
+  const fetchLibrary = async () => {
+    setIsLoadingLibrary(true)
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'}/documents/library?type=LOAN`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (res.ok) {
+        setLibraryDocs(await res.json())
+      }
+    } catch (e) {
+      console.error(e)
+    } finally {
+      setIsLoadingLibrary(false)
+    }
+  }
+
+  const handleSelectLibraryDoc = (doc: any) => {
+    setUploadedDocumentId(doc.id)
+    const data = doc.extractions?.[0]?.structuredData || {}
+    if (data.loanName) setValue('name', data.loanName, { shouldValidate: true })
+    if (data.lender) setValue('lender', data.lender, { shouldValidate: true })
+    if (data.principalAmount) setValue('principalAmount', data.principalAmount, { shouldValidate: true })
+    if (data.interestRate) setValue('interestRate', data.interestRate, { shouldValidate: true })
+    if (data.tenureMonths) setValue('tenureMonths', data.tenureMonths, { shouldValidate: true })
+    if (data.emiDate) setValue('firstEmiDate', data.emiDate.substring(0, 10), { shouldValidate: true })
+    if (data.startDate) setValue('startDate', data.startDate.substring(0, 10), { shouldValidate: true })
+  }
 
   const {
     register,
@@ -127,8 +160,26 @@ export default function AddLoanModal({
             <div className="mb-4 rounded-xl bg-red-500/20 p-3 text-sm text-red-200">{serverError}</div>
           )}
 
-          <div className="mb-6">
-            <DocumentUploader
+          <div className="mb-6 bg-white/5 p-4 rounded-xl border border-white/10">
+            <div className="flex gap-4 mb-4 border-b border-white/10 pb-2">
+              <button
+                type="button"
+                onClick={() => setActiveTab('upload')}
+                className={`text-sm font-medium transition-colors ${activeTab === 'upload' ? 'text-indigo-400' : 'text-gray-400 hover:text-gray-300'}`}
+              >
+                Upload New
+              </button>
+              <button
+                type="button"
+                onClick={() => { setActiveTab('library'); fetchLibrary(); }}
+                className={`text-sm font-medium transition-colors ${activeTab === 'library' ? 'text-indigo-400' : 'text-gray-400 hover:text-gray-300'}`}
+              >
+                Choose from Library
+              </button>
+            </div>
+
+            {activeTab === 'upload' ? (
+              <DocumentUploader
               entityId="pending-loan"
               documentType="LOAN"
               token={token}
@@ -147,6 +198,38 @@ export default function AddLoanModal({
                 }
               }}
             />
+            ) : (
+              <div className="min-h-[150px]">
+                {isLoadingLibrary ? (
+                  <div className="flex items-center justify-center h-full text-gray-400">
+                    <Loader2 className="w-5 h-5 animate-spin mr-2" /> Loading library...
+                  </div>
+                ) : libraryDocs.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full text-gray-500 text-sm py-8">
+                    <FileText className="w-8 h-8 mb-2 opacity-50" />
+                    No unused loan documents found.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
+                    {libraryDocs.map(doc => (
+                      <div 
+                        key={doc.id}
+                        onClick={() => handleSelectLibraryDoc(doc)}
+                        className={`p-3 rounded-lg border cursor-pointer transition-all flex items-start gap-3 ${uploadedDocumentId === doc.id ? 'bg-indigo-500/20 border-indigo-500' : 'bg-black/20 border-white/5 hover:border-white/20 hover:bg-black/40'}`}
+                      >
+                        <FileText className={`w-8 h-8 shrink-0 ${uploadedDocumentId === doc.id ? 'text-indigo-400' : 'text-gray-400'}`} />
+                        <div className="overflow-hidden">
+                          <div className="text-sm text-gray-200 truncate font-medium" title={doc.fileName}>{doc.fileName}</div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {new Date(doc.createdAt).toLocaleDateString()} &bull; {doc.extractions?.length ? 'Extracted' : 'No Data'}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <form id="loan-form" onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-2 gap-4" noValidate>

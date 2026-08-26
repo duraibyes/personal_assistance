@@ -1,7 +1,14 @@
 import { GoogleGenAI } from '@google/genai';
 
+import OpenAI from 'openai';
+
 // Initialize the Gemini client. We will require GEMINI_API_KEY in the environment.
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
+const openRouter = process.env.OPENROUTER_API_KEY ? new OpenAI({ 
+  apiKey: process.env.OPENROUTER_API_KEY,
+  baseURL: 'https://openrouter.ai/api/v1',
+}) : null;
 
 export interface LoanExtractionResult {
   loanName?: string;
@@ -33,8 +40,8 @@ export class OcrService {
     mimeType: string,
     documentType: 'LOAN' | 'EXPENSE'
   ): Promise<LoanExtractionResult | ExpenseExtractionResult> {
-    if (!process.env.GEMINI_API_KEY) {
-      throw new Error('GEMINI_API_KEY is not configured in the environment variables.');
+    if (!process.env.GEMINI_API_KEY && !process.env.OPENAI_API_KEY && !process.env.OPENROUTER_API_KEY) {
+      throw new Error('No AI provider API keys configured in the environment variables.');
     }
 
     try {
@@ -51,42 +58,109 @@ export class OcrService {
         }
       }
 
-      // If we don't have text (e.g. image or scanned PDF), we can pass the file directly to Gemini
-      // For simplicity in this implementation, if we have text we use it, otherwise we use the image directly.
       const prompt = this.getPromptForType(documentType);
-      
-      let response;
-      if (rawText && rawText.trim().length > 100) {
-        // Text-based extraction
-        response = await ai.models.generateContent({
-          model: 'gemini-2.5-flash',
-          contents: `Here is the text extracted from a financial document:\n\n${rawText}\n\n${prompt}`,
-          config: {
-            responseMimeType: 'application/json',
+      let responseText = '';
+      let extractionError: Error | null = null;
+
+      // ATTEMPT 1: Gemini
+      if (process.env.GEMINI_API_KEY) {
+        try {
+          if (rawText && rawText.trim().length > 100) {
+            const response = await ai.models.generateContent({
+              model: 'gemini-2.5-flash',
+              contents: `Here is the text extracted from a financial document:\n\n${rawText}\n\n${prompt}`,
+              config: { responseMimeType: 'application/json' }
+            });
+            responseText = response.text || '';
+          } else {
+            const response = await ai.models.generateContent({
+              model: 'gemini-2.5-flash',
+              contents: [
+                prompt,
+                { inlineData: { mimeType, data: fileBuffer.toString('base64') } }
+              ],
+              config: { responseMimeType: 'application/json' }
+            });
+            responseText = response.text || '';
           }
-        });
-      } else {
-        // Vision-based extraction for images (or un-parsable PDFs)
-        response = await ai.models.generateContent({
-          model: 'gemini-2.5-flash',
-          contents: [
-            prompt,
-            { inlineData: { mimeType, data: fileBuffer.toString('base64') } }
-          ],
-          config: {
-            responseMimeType: 'application/json',
-          }
-        });
+        } catch (err) {
+          console.warn('Gemini extraction failed, attempting fallback...', err);
+          extractionError = err instanceof Error ? err : new Error(String(err));
+        }
       }
 
-      let responseText = response.text || '{}';
-      // Sometimes Gemini still wraps JSON in markdown fences even with responseMimeType
+      // ATTEMPT 2: OpenAI Fallback
+      if (!responseText && openai) {
+        try {
+          responseText = await this.extractWithOpenAI(openai, 'gpt-4o-mini', rawText, fileBuffer, mimeType, prompt, true);
+          extractionError = null;
+        } catch (err) {
+          console.warn('OpenAI fallback failed, attempting OpenRouter...', err);
+          extractionError = err instanceof Error ? err : new Error(String(err));
+        }
+      }
+
+      // ATTEMPT 3: OpenRouter Fallback
+      if (!responseText && openRouter) {
+        try {
+          responseText = await this.extractWithOpenAI(openRouter, 'google/gemini-2.5-flash', rawText, fileBuffer, mimeType, prompt, false);
+          extractionError = null;
+        } catch (err) {
+          console.error('OpenRouter fallback failed.', err);
+          extractionError = err instanceof Error ? err : new Error(String(err));
+        }
+      }
+
+      if (!responseText) {
+        throw extractionError || new Error('All configured AI providers failed to extract data.');
+      }
+
+      // Sometimes models wrap JSON in markdown fences
       responseText = responseText.replace(/```json\n?/, '').replace(/```\n?$/, '').trim();
       return JSON.parse(responseText);
     } catch (error) {
       console.error('Error in OCR extraction:', error);
       throw new Error(`Failed to extract structured data: ${error instanceof Error ? error.message : String(error)}`);
     }
+  }
+
+  private static async extractWithOpenAI(
+    client: OpenAI, 
+    model: string, 
+    rawText: string, 
+    fileBuffer: Buffer, 
+    mimeType: string, 
+    prompt: string,
+    useJsonFormat: boolean
+  ): Promise<string> {
+    let messages: any[] = [];
+    
+    if (rawText && rawText.trim().length > 100) {
+      messages = [
+        { role: 'user', content: `Here is the text extracted from a financial document:\n\n${rawText}\n\n${prompt}` }
+      ];
+    } else {
+      if (!mimeType.startsWith('image/')) {
+        throw new Error('OpenAI/OpenRouter fallback does not natively support direct PDF vision. Please ensure Gemini is configured for PDFs.');
+      }
+      messages = [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: prompt },
+            { type: 'image_url', image_url: { url: `data:${mimeType};base64,${fileBuffer.toString('base64')}` } }
+          ]
+        }
+      ];
+    }
+
+    const payload: any = { model, messages };
+    if (useJsonFormat) {
+      payload.response_format = { type: 'json_object' };
+    }
+
+    const completion = await client.chat.completions.create(payload);
+    return completion.choices[0]?.message?.content || '';
   }
 
   private static getPromptForType(type: 'LOAN' | 'EXPENSE'): string {

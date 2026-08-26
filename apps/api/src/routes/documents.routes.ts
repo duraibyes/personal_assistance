@@ -94,6 +94,75 @@ router.post('/upload', upload.single('file'), async (req: Request, res: Response
 
 /**
  * @openapi
+ * /api/documents/library:
+ *   get:
+ *     tags: [Documents]
+ *     summary: Fetch unused documents from the user's media library
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [LOAN, EXPENSE, INCOME, PURCHASE, VEHICLE, DOCUMENT]
+ *         required: false
+ *         description: Filter unused documents by document type
+ *     responses:
+ *       200:
+ *         description: List of unused documents with extractions
+ */
+router.get('/library', async (req: Request, res: Response) => {
+  try {
+    const userId = req.user!.id;
+    const { type } = req.query;
+
+    // Get all used document IDs across entities
+    const usedLoans = await prisma.loan.findMany({ where: { userId, documentId: { not: null } }, select: { documentId: true } });
+    const usedExpenses = await prisma.expense.findMany({ where: { userId, documentId: { not: null } }, select: { documentId: true } });
+    const usedIncomes = await prisma.income.findMany({ where: { userId, documentId: { not: null } }, select: { documentId: true } });
+    const usedPurchases = await prisma.purchase.findMany({ where: { userId, documentId: { not: null } }, select: { documentId: true } });
+    const usedServices = await prisma.vehicleService.findMany({ where: { userId, documentId: { not: null } }, select: { documentId: true } });
+    const usedInsurances = await prisma.insurance.findMany({ where: { userId, documentId: { not: null } }, select: { documentId: true } });
+
+    const usedIds = [
+      ...usedLoans.map(l => l.documentId),
+      ...usedExpenses.map(e => e.documentId),
+      ...usedIncomes.map(i => i.documentId),
+      ...usedPurchases.map(p => p.documentId),
+      ...usedServices.map(v => v.documentId),
+      ...usedInsurances.map(i => i.documentId),
+    ].filter(Boolean) as string[];
+
+    const whereClause: any = {
+      userId,
+      id: { notIn: usedIds }
+    };
+
+    if (type) {
+      whereClause.documentType = String(type).toUpperCase();
+    }
+
+    const documents = await prisma.document.findMany({
+      where: whereClause,
+      include: {
+        extractions: {
+          orderBy: { createdAt: 'desc' },
+          take: 1
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    res.json(documents);
+  } catch (error) {
+    console.error('Fetch library error:', error);
+    res.status(500).json({ error: 'Failed to fetch media library' });
+  }
+});
+
+/**
+ * @openapi
  * /api/documents/{id}/extract:
  *   post:
  *     tags: [Documents]
