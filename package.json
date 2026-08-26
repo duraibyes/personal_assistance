@@ -11,7 +11,7 @@
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
-    "prepare": "husky",
+    "prepare": "node -e \"try{require('child_process').execSync('husky')}catch(e){}\"",
     "secrets:scan": "gitleaks detect --source . --config .gitleaks.toml --redact"
   },
   "devDependencies": {
