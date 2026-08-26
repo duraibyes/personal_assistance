@@ -27,6 +27,8 @@ yarn-error.log*
 # local env files
 .env*.local
 .env
+.env.development
+.env.production
 
 # turbo
 .turbo
@@ -35,3 +37,6 @@ yarn-error.log*
 .expo
 android/
 ios/
+
+# gitleaks
+.gitleaks-report.json

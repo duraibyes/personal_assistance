@@ -1,6 +1,50 @@
-import { login, signup } from './actions'
+'use client'
 
-export default function LoginPage({ searchParams }: { searchParams: { error: string } }) {
+import React, { useState, useTransition } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+import { login, signup } from './actions'
+import { Input } from '@/components/ui/Input'
+import { Button } from '@/components/ui/Button'
+import { useRouter } from 'next/navigation'
+
+const authSchema = z.object({
+  email: z.string().min(1, 'Email is required').email('Invalid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters')
+})
+
+type AuthFormValues = z.infer<typeof authSchema>
+
+export default function LoginPage() {
+  const router = useRouter()
+  const [isPending, startTransition] = useTransition()
+  const [serverError, setServerError] = useState<string | null>(null)
+  
+  const { register, handleSubmit, formState: { errors, isValid } } = useForm<AuthFormValues>({
+    resolver: zodResolver(authSchema),
+    mode: 'onChange'
+  })
+
+  const onSubmit = async (data: AuthFormValues, action: 'login' | 'signup') => {
+    setServerError(null)
+    
+    // Create FormData for the server action
+    const formData = new FormData()
+    formData.append('email', data.email)
+    formData.append('password', data.password)
+
+    startTransition(async () => {
+      const result = action === 'login' ? await login(formData) : await signup(formData)
+      
+      if (result.error) {
+        setServerError(result.error)
+      } else if (result.success) {
+        router.push('/dashboard')
+      }
+    })
+  }
+
   return (
     <div className="flex h-screen w-full items-center justify-center bg-[url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop')] bg-cover bg-center">
       {/* Overlay to darken background */}
@@ -17,56 +61,45 @@ export default function LoginPage({ searchParams }: { searchParams: { error: str
         </div>
 
         <form className="flex flex-col gap-5">
-          {searchParams?.error && (
+          {serverError && (
             <div className="rounded-xl bg-red-500/20 p-3 text-center text-sm font-medium text-red-200 backdrop-blur-md">
-              {searchParams.error}
+              {serverError}
             </div>
           )}
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-white drop-shadow-sm" htmlFor="email">
-              Email Address
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              required
-              placeholder="you@example.com"
-              className="rounded-xl border border-white/20 bg-black/20 px-4 py-3 text-white placeholder-gray-400 outline-none transition-all focus:border-white/50 focus:bg-black/40 focus:ring-2 focus:ring-white/20"
-            />
-          </div>
+          <Input
+            label="Email Address"
+            type="email"
+            placeholder="you@example.com"
+            error={errors.email?.message}
+            {...register('email')}
+          />
 
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium text-white drop-shadow-sm" htmlFor="password">
-              Password
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              required
-              placeholder="••••••••"
-              className="rounded-xl border border-white/20 bg-black/20 px-4 py-3 text-white placeholder-gray-400 outline-none transition-all focus:border-white/50 focus:bg-black/40 focus:ring-2 focus:ring-white/20"
-            />
-          </div>
+          <Input
+            label="Password"
+            type="password"
+            placeholder="••••••••"
+            error={errors.password?.message}
+            {...register('password')}
+          />
 
           <div className="mt-4 flex flex-col gap-3">
-            <button
-              formAction={login}
-              className="group relative flex w-full items-center justify-center overflow-hidden rounded-xl bg-white px-4 py-3 font-semibold text-black transition-transform active:scale-95"
+            <Button
+              type="button"
+              disabled={!isValid || isPending}
+              loading={isPending}
+              onClick={handleSubmit((data) => onSubmit(data, 'login'))}
             >
-              <div className="absolute inset-0 flex h-full w-full justify-center [transform:skew(-12deg)_translateX(-100%)] group-hover:duration-1000 group-hover:[transform:skew(-12deg)_translateX(100%)]">
-                <div className="relative h-full w-8 bg-white/20" />
-              </div>
               Sign In
-            </button>
-            <button
-              formAction={signup}
-              className="rounded-xl border border-white/30 bg-transparent px-4 py-3 font-semibold text-white transition-all hover:bg-white/10 active:scale-95"
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={!isValid || isPending}
+              onClick={handleSubmit((data) => onSubmit(data, 'signup'))}
             >
               Create Account
-            </button>
+            </Button>
           </div>
         </form>
       </div>

@@ -3,21 +3,29 @@ import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator } from 'rea
 import * as DocumentPicker from 'expo-document-picker';
 
 interface ExtractionResult {
-  document: any;
+  document: { id: string; [key: string]: unknown };
   extraction: {
-    structuredData: any;
+    structuredData: unknown;
   };
 }
 
 interface DocumentUploaderProps {
-  userId: string;
+  entityId: string;
   documentType: 'LOAN' | 'EXPENSE';
+  token: string;
   onExtractionComplete: (result: ExtractionResult) => void;
 }
 
-export function DocumentUploader({ userId, documentType, onExtractionComplete }: DocumentUploaderProps) {
+export function DocumentUploader({
+  entityId,
+  documentType,
+  token,
+  onExtractionComplete,
+}: DocumentUploaderProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const apiBase = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000/api';
 
   const handlePickAndUpload = async () => {
     try {
@@ -34,35 +42,34 @@ export function DocumentUploader({ userId, documentType, onExtractionComplete }:
       setIsUploading(true);
       setError(null);
 
-      // Create form data for upload
       const formData = new FormData();
       formData.append('file', {
         uri: file.uri,
         name: file.name,
         type: file.mimeType || 'application/octet-stream',
-      } as any);
-      formData.append('userId', userId);
+      } as unknown as Blob);
+      formData.append('entityId', entityId);
       formData.append('documentType', documentType);
 
-      // 1. Upload Document
-      // Note: Replace with your actual backend IP instead of localhost for Android simulator (e.g., 10.0.2.2 or network IP)
-      const uploadRes = await fetch('http://10.0.2.2:4000/api/documents/upload', {
+      const uploadRes = await fetch(`${apiBase}/documents/upload`, {
         method: 'POST',
         body: formData,
         headers: {
-          'Content-Type': 'multipart/form-data',
+          Authorization: `Bearer ${token}`,
         },
       });
 
       if (!uploadRes.ok) {
         throw new Error('Failed to upload document');
       }
-      
+
       const uploadedDoc = await uploadRes.json();
 
-      // 2. Trigger Extraction
-      const extractRes = await fetch(`http://10.0.2.2:4000/api/documents/${uploadedDoc.id}/extract`, {
+      const extractRes = await fetch(`${apiBase}/documents/${uploadedDoc.id}/extract`, {
         method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       if (!extractRes.ok) {
@@ -71,9 +78,8 @@ export function DocumentUploader({ userId, documentType, onExtractionComplete }:
 
       const extractionResult = await extractRes.json();
       onExtractionComplete(extractionResult);
-
-    } catch (err: any) {
-      setError(err.message || 'An error occurred during upload.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'An error occurred during upload.');
     } finally {
       setIsUploading(false);
     }
@@ -82,11 +88,11 @@ export function DocumentUploader({ userId, documentType, onExtractionComplete }:
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Upload {documentType === 'LOAN' ? 'Loan Document' : 'Receipt'}</Text>
-      
+
       {error && <Text style={styles.errorText}>{error}</Text>}
 
-      <TouchableOpacity 
-        style={[styles.button, isUploading && styles.buttonDisabled]} 
+      <TouchableOpacity
+        style={[styles.button, isUploading && styles.buttonDisabled]}
         onPress={handlePickAndUpload}
         disabled={isUploading}
       >
@@ -131,5 +137,5 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#ffffff',
     fontWeight: '600',
-  }
+  },
 });

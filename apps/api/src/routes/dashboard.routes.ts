@@ -1,42 +1,51 @@
 import { Router } from 'express';
 import { prisma } from '@repo/database';
-import { requireAuth } from '../middleware/auth.middleware';
 
-export const dashboardRouter = Router();
+export const dashboardRouter: Router = Router();
 
-dashboardRouter.use(requireAuth);
-
+/**
+ * @openapi
+ * /api/dashboard/summary:
+ *   get:
+ *     tags: [Dashboard]
+ *     summary: Get dashboard financial summary
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Summary metrics
+ */
 dashboardRouter.get('/summary', async (req, res) => {
   try {
-    const userId = req.user.id;
-    
-    // Total loans amount
-    const loans = await prisma.loan.findMany({ where: { userId } });
+    const userId = req.user!.id;
+    const where = req.user!.isAdmin ? {} : { userId };
+
+    const loans = await prisma.loan.findMany({ where });
     const totalLoansAmount = loans.reduce((acc, loan) => acc + loan.outstandingAmount, 0);
     const totalMonthlyEmi = loans.reduce((acc, loan) => acc + loan.emiAmount, 0);
-    
-    // Total expenses this month
+
     const startOfMonth = new Date();
     startOfMonth.setDate(1);
     startOfMonth.setHours(0, 0, 0, 0);
-    
+
     const expenses = await prisma.expense.findMany({
       where: {
-        userId,
-        date: { gte: startOfMonth }
-      }
+        ...where,
+        date: { gte: startOfMonth },
+      },
     });
     const totalExpensesThisMonth = expenses.reduce((acc, exp) => acc + exp.amount, 0);
-    
-    const activeVehiclesCount = await prisma.vehicle.count({ where: { userId } });
-    
+
+    const activeVehiclesCount = await prisma.vehicle.count({ where });
+
     res.json({
       totalLoansAmount,
       totalMonthlyEmi,
       totalExpensesThisMonth,
-      activeVehiclesCount
+      activeVehiclesCount,
     });
   } catch (error) {
+    console.error('Dashboard summary error:', error);
     res.status(500).json({ error: 'Failed to fetch dashboard summary' });
   }
 });

@@ -1,0 +1,10 @@
+#!/usr/bin/env sh
+
+# Prefer gitleaks if installed; otherwise skip with a warning
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks protect --staged --redact --config .gitleaks.toml
+else
+  echo "WARNING: gitleaks is not installed. Install from https://github.com/gitleaks/gitleaks"
+  echo "  Windows (scoop): scoop install gitleaks"
+  echo "  macOS (brew):    brew install gitleaks"
+fi

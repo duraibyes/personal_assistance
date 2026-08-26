@@ -1,0 +1,12 @@
+# Gitleaks configuration — https://github.com/gitleaks/gitleaks
+title = "WealthGuard gitleaks"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Allowlisted paths"
+paths = [
+  '''\.env\.example$''',
+  '''pnpm-lock\.yaml$''',
+]

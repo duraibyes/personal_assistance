@@ -1,25 +1,37 @@
 "use client";
 
 import React, { useState } from "react";
+import { Button } from "@/components/ui/Button";
 
 interface ExtractionResult {
-  document: any;
+  document: {
+    id: string;
+    [key: string]: unknown;
+  };
   extraction: {
-    structuredData: any;
+    structuredData: unknown;
   };
 }
 
 interface DocumentUploaderProps {
-  userId: string;
-  documentType: "LOAN" | "EXPENSE";
+  entityId: string;
+  documentType: "LOAN" | "EXPENSE" | "INCOME" | "PURCHASE" | "VEHICLE" | "DOCUMENT";
+  token: string;
   onExtractionComplete: (result: ExtractionResult) => void;
 }
 
-export function DocumentUploader({ userId, documentType, onExtractionComplete }: DocumentUploaderProps) {
+export function DocumentUploader({
+  entityId,
+  documentType,
+  token,
+  onExtractionComplete,
+}: DocumentUploaderProps) {
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isExtracting, setIsExtracting] = useState(false);
   const [error, setError] = useState("");
+
+  const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -40,32 +52,42 @@ export function DocumentUploader({ userId, documentType, onExtractionComplete }:
 
       const formData = new FormData();
       formData.append("file", file);
-      formData.append("userId", userId);
       formData.append("documentType", documentType);
+      formData.append("entityId", entityId);
 
-      // 1. Upload Document
-      const uploadRes = await fetch("http://localhost:4000/api/documents/upload", {
+      const uploadRes = await fetch(`${apiBase}/documents/upload`, {
         method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
         body: formData,
       });
 
-      if (!uploadRes.ok) throw new Error("Upload failed.");
+      if (!uploadRes.ok) {
+        const data = await uploadRes.json().catch(() => ({}));
+        throw new Error(data.error || "Upload failed.");
+      }
       const uploadedDoc = await uploadRes.json();
 
-      // 2. Trigger Extraction
       setIsUploading(false);
       setIsExtracting(true);
 
-      const extractRes = await fetch(`http://localhost:4000/api/documents/${uploadedDoc.id}/extract`, {
+      const extractRes = await fetch(`${apiBase}/documents/${uploadedDoc.id}/extract`, {
         method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       });
 
-      if (!extractRes.ok) throw new Error("Extraction failed.");
+      if (!extractRes.ok) {
+        const data = await extractRes.json().catch(() => ({}));
+        throw new Error(data.error || "Extraction failed.");
+      }
       const extractionResult = await extractRes.json();
 
       onExtractionComplete(extractionResult);
-    } catch (err: any) {
-      setError(err.message || "An unexpected error occurred.");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "An unexpected error occurred.");
     } finally {
       setIsUploading(false);
       setIsExtracting(false);
@@ -73,30 +95,35 @@ export function DocumentUploader({ userId, documentType, onExtractionComplete }:
   };
 
   return (
-    <div className="p-4 border rounded-md shadow-sm space-y-4">
-      <h3 className="text-lg font-medium">Upload {documentType === "LOAN" ? "Loan Document" : "Receipt"}</h3>
-      
-      <input 
-        type="file" 
+    <div className="space-y-4 rounded-2xl border border-white/10 bg-white/5 p-4">
+      <h3 className="text-lg font-medium text-white">
+        Upload {documentType === "LOAN" ? "Loan Document" : "Receipt"}
+      </h3>
+
+      <input
+        type="file"
         accept="image/*,application/pdf"
         onChange={handleFileChange}
-        className="block w-full text-sm text-gray-500
-          file:mr-4 file:py-2 file:px-4
-          file:rounded-md file:border-0
-          file:text-sm file:font-semibold
-          file:bg-blue-50 file:text-blue-700
-          hover:file:bg-blue-100"
+        className="block w-full text-sm text-gray-400 file:mr-4 file:rounded-xl file:border-0 file:bg-indigo-500/20 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-indigo-300 hover:file:bg-indigo-500/30"
       />
 
-      {error && <p className="text-red-500 text-sm">{error}</p>}
+      {error && (
+        <p className="text-sm text-red-400" role="alert">
+          {error}
+        </p>
+      )}
 
-      <button 
+      <Button
         onClick={handleUploadAndExtract}
         disabled={!file || isUploading || isExtracting}
-        className="px-4 py-2 bg-blue-600 text-white rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
+        loading={isUploading || isExtracting}
       >
-        {isUploading ? "Uploading..." : isExtracting ? "Extracting Data (AI)..." : "Upload & Extract"}
-      </button>
+        {isUploading
+          ? "Uploading..."
+          : isExtracting
+            ? "Extracting Data (AI)..."
+            : "Upload & Extract"}
+      </Button>
     </div>
   );
 }

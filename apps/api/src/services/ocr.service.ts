@@ -1,5 +1,5 @@
 import { GoogleGenAI } from '@google/genai';
-import pdfParse from 'pdf-parse';
+const pdfParse = require('pdf-parse');
 
 // Initialize the Gemini client. We will require GEMINI_API_KEY in the environment.
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
