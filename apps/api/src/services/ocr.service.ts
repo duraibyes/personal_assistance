@@ -1,5 +1,4 @@
 import { GoogleGenAI } from '@google/genai';
-const pdfParse = require('pdf-parse');
 
 // Initialize the Gemini client. We will require GEMINI_API_KEY in the environment.
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
@@ -44,6 +43,7 @@ export class OcrService {
       // If it's a PDF, we try to extract text first as it is cheaper and faster.
       if (mimeType === 'application/pdf') {
         try {
+          const pdfParse = require('pdf-parse');
           const pdfData = await pdfParse(fileBuffer);
           rawText = pdfData.text;
         } catch (err) {
