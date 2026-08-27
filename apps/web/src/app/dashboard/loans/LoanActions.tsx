@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Pencil, Trash2 } from 'lucide-react'
+import { Pencil, Trash2, Receipt } from 'lucide-react'
 import { Button, CancelButton } from '@/components/ui/Button'
 
 export default function LoanActions({ loanId, token }: { loanId: string; token: string }) {
@@ -31,6 +31,13 @@ export default function LoanActions({ loanId, token }: { loanId: string; token: 
   return (
     <>
       <div className="flex items-center justify-end gap-2">
+        <Link
+          href={`/dashboard/loans/${loanId}/emis`}
+          className="inline-flex items-center justify-center rounded-xl bg-secondary p-2 text-muted-foreground transition-all hover:bg-emerald-500/15 hover:text-emerald-500"
+          title="EMI / Payments"
+        >
+          <Receipt className="h-4 w-4" />
+        </Link>
         <Link
           href={`/dashboard/loans/${loanId}/edit`}
           className="inline-flex items-center justify-center rounded-xl bg-secondary p-2 text-muted-foreground transition-all hover:bg-primary/15 hover:text-primary"

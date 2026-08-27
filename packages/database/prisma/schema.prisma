@@ -112,14 +112,25 @@ model Loan {
 }
 
 model LoanPayment {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   loanId      String
-  loan        Loan     @relation(fields: [loanId], references: [id])
-  amount      Float
-  paymentDate DateTime
-  notes       String?
+  loan        Loan      @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  emiNumber   Int
+  dueDate     DateTime
+  dueAmount   Float
+  status      String    @default("PENDING") // PENDING, PAID, OVERDUE, PARTIAL
+  paidAmount  Float?
+  paymentDate DateTime?
+  description String?
+  documentId  String?
+  document    Document? @relation(fields: [documentId], references: [id])
 
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([loanId, emiNumber])
+  @@index([loanId, dueDate])
+  @@index([status])
 }
 
 model Expense {
@@ -259,7 +270,8 @@ model Document {
   loanId String?
   loan   Loan?   @relation("LoanAttachments", fields: [loanId], references: [id])
 
-  extractions DocumentExtraction[]
+  extractions  DocumentExtraction[]
+  loanPayments LoanPayment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

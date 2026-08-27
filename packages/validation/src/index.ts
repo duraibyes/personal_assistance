@@ -100,6 +100,19 @@ export const CreateRecurringExpenseSchema = z.object({
 
 export const UpdateRecurringExpenseSchema = CreateRecurringExpenseSchema.partial();
 
+export const UpdateLoanEmiSchema = z.object({
+  status: z.enum(["PENDING", "PAID", "OVERDUE", "PARTIAL"]).optional(),
+  paidAmount: z.coerce.number().nonnegative("Amount must be zero or positive").optional().nullable(),
+  paymentDate: dateInput.optional().nullable(),
+  description: z.string().optional().nullable(),
+  documentId: z.string().optional().nullable(),
+});
+
+export const BulkPayLoanEmiSchema = z.object({
+  mode: z.enum(["ALL", "UNTIL_CURRENT_MONTH"]),
+  description: z.string().optional().nullable(),
+});
+
 export type SignupInput = z.infer<typeof SignupSchema>;
 export type LoginInput = z.infer<typeof LoginSchema>;
 export type CreateLoanInput = z.infer<typeof CreateLoanSchema>;
@@ -107,3 +120,5 @@ export type CreateExpenseInput = z.infer<typeof CreateExpenseSchema>;
 export type CreateIncomeInput = z.infer<typeof CreateIncomeSchema>;
 export type CreateCategoryInput = z.infer<typeof CreateCategorySchema>;
 export type CreateRecurringExpenseInput = z.infer<typeof CreateRecurringExpenseSchema>;
+export type UpdateLoanEmiInput = z.infer<typeof UpdateLoanEmiSchema>;
+export type BulkPayLoanEmiInput = z.infer<typeof BulkPayLoanEmiSchema>;

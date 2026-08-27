@@ -4,6 +4,7 @@ import helmet from "helmet";
 import { authRouter } from './routes/auth.routes';
 import documentsRouter from './routes/documents.routes';
 import { loansRouter } from './routes/loans.routes';
+import { loanEmiRouter } from './routes/loan-emi.routes';
 import { expensesRouter } from './routes/expenses.routes';
 import { incomesRouter } from './routes/incomes.routes';
 import { categoriesRouter } from './routes/categories.routes';
@@ -46,6 +47,7 @@ app.get("/api/health", (_req: Request, res: Response) => {
 app.use("/api/auth", authRouter);
 app.use("/api/documents", requireAuth, documentsRouter);
 app.use("/api/loans", requireAuth, loansRouter);
+app.use("/api/loans/:loanId/emis", requireAuth, loanEmiRouter);
 app.use("/api/expenses", requireAuth, expensesRouter);
 app.use("/api/incomes", requireAuth, incomesRouter);
 app.use("/api/categories", requireAuth, categoriesRouter);
