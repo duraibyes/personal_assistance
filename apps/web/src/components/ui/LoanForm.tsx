@@ -167,17 +167,25 @@ export function LoanForm({ token, initialData }: { token: string; initialData?: 
 
   return (
     <div className="mx-auto max-w-7xl animate-in fade-in duration-500">
-      <div className="mb-6 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Link href="/dashboard/loans" className="p-2 rounded-xl bg-secondary hover:bg-secondary/80 text-muted-foreground transition-colors">
+      <div className="sticky top-0 z-20 -mx-4 md:-mx-8 mb-6 flex items-center justify-between gap-3 border-b border-border bg-background/95 px-4 py-3 backdrop-blur-md md:px-8 md:py-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <Link href="/dashboard/loans" className="p-2 rounded-xl bg-secondary hover:bg-secondary/80 text-muted-foreground transition-colors shrink-0">
             <ArrowLeft className="h-5 w-5" />
           </Link>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground drop-shadow-md">
+          <div className="min-w-0">
+            <h1 className="text-base md:text-2xl font-bold tracking-tight text-foreground truncate">
               {initialData ? 'Edit Loan' : 'Add New Loan'}
             </h1>
-            <p className="text-sm text-muted-foreground">{initialData ? 'Update your loan details and attachments.' : 'Upload a document or fill the form manually.'}</p>
+            <p className="hidden sm:block text-xs md:text-sm text-muted-foreground truncate">{initialData ? 'Update your loan details and attachments.' : 'Upload a document or fill the form manually.'}</p>
           </div>
+        </div>
+        <div className="flex items-center gap-2 md:gap-3 shrink-0">
+          <Link href="/dashboard/loans">
+            <CancelButton size="sm" disabled={isSubmitting} />
+          </Link>
+          <SaveButton form="loan-form" type="submit" size="sm" disabled={!isValid || isSubmitting} loading={isSubmitting}>
+            {initialData ? 'Save Changes' : 'Create Loan'}
+          </SaveButton>
         </div>
       </div>
 
@@ -336,15 +344,6 @@ export function LoanForm({ token, initialData }: { token: string; initialData?: 
             </div>
           </div>
         </div>
-      </div>
-
-      <div className="mt-8 flex items-center justify-end gap-4">
-        <Link href="/dashboard/loans">
-          <CancelButton disabled={isSubmitting} />
-        </Link>
-        <SaveButton form="loan-form" type="submit" disabled={!isValid || isSubmitting} loading={isSubmitting} className="px-8">
-          {initialData ? 'Save Changes' : 'Create Loan'}
-        </SaveButton>
       </div>
     </div>
   )

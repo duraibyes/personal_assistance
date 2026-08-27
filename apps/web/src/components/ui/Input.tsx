@@ -25,7 +25,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             type={isPassword ? (showPassword ? 'text' : 'password') : type}
             aria-invalid={Boolean(error)}
             aria-describedby={error ? `${inputId}-error` : undefined}
-            className={`w-full rounded-xl border bg-background px-4 py-3 text-foreground placeholder-muted-foreground outline-none transition-all focus:bg-accent/10 focus:ring-2 ${
+            className={`w-full rounded-xl border bg-background px-3.5 py-2.5 text-sm text-foreground placeholder-muted-foreground outline-none transition-all focus:bg-accent/10 focus:ring-2 ${
               isPassword ? 'pr-11' : ''
             } ${
               error

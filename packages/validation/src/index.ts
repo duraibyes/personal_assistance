@@ -5,6 +5,12 @@ const dateInput = z
   .min(1, "Date is required")
   .refine((val) => !isNaN(Date.parse(val)), { message: "Invalid date" });
 
+/** Same validation as dateInput, but treats "" the same as null/undefined (a blank optional date field). */
+const optionalDateInput = z.preprocess(
+  (val) => (val === "" ? null : val),
+  dateInput.optional().nullable()
+);
+
 export const SignupSchema = z.object({
   email: z.string().min(1, "Email is required").email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
@@ -30,7 +36,7 @@ export const CreateLoanSchema = z.object({
   numberOfEmis: z.coerce.number().int().positive(),
   remainingEmis: z.coerce.number().int().nonnegative().optional(),
   outstandingAmount: z.coerce.number().nonnegative().optional(),
-  nextEmiDate: dateInput.optional(),
+  nextEmiDate: optionalDateInput,
   status: z.string().optional(),
   processingFee: z.coerce.number().nonnegative().optional().nullable(),
   insuranceAmount: z.coerce.number().nonnegative().optional().nullable(),
@@ -38,8 +44,8 @@ export const CreateLoanSchema = z.object({
   lenderAddress: z.string().optional().nullable(),
   lenderContact: z.string().optional().nullable(),
   lenderEmail: z.string().email("Invalid email address").optional().nullable().or(z.literal("")),
-  appliedDate: dateInput.optional().nullable(),
-  endDate: dateInput.optional().nullable(),
+  appliedDate: optionalDateInput,
+  endDate: optionalDateInput,
   documentId: z.string().optional().nullable(),
   attachmentIds: z.array(z.string()).optional(),
   paidEmis: z.coerce.number().int().nonnegative().optional(),
@@ -92,7 +98,7 @@ export const CreateRecurringExpenseSchema = z.object({
   categoryId: z.string().optional().nullable(),
   frequency: z.enum(["MONTHLY", "QUARTERLY", "HALF_YEARLY", "YEARLY", "CUSTOM"]),
   nextDueDate: dateInput,
-  lastPaymentDate: dateInput.optional().nullable(),
+  lastPaymentDate: optionalDateInput,
   paymentMethod: z.string().min(1, "Payment method is required"),
   notes: z.string().optional().nullable(),
   isActive: z.boolean().optional(),
@@ -103,7 +109,7 @@ export const UpdateRecurringExpenseSchema = CreateRecurringExpenseSchema.partial
 export const UpdateLoanEmiSchema = z.object({
   status: z.enum(["PENDING", "PAID", "OVERDUE", "PARTIAL"]).optional(),
   paidAmount: z.coerce.number().nonnegative("Amount must be zero or positive").optional().nullable(),
-  paymentDate: dateInput.optional().nullable(),
+  paymentDate: optionalDateInput,
   description: z.string().optional().nullable(),
   documentId: z.string().optional().nullable(),
 });
