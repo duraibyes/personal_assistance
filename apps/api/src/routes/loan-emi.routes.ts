@@ -27,15 +27,17 @@ async function syncLoanFromEmis(loanId: string) {
   const nextPending = emis.find((e) => e.status === 'PENDING' || e.status === 'OVERDUE');
   const nextEmiDate = nextPending ? nextPending.dueDate : emis[emis.length - 1]?.dueDate || loan.nextEmiDate;
   const allPaid = emis.length > 0 && emis.every((e) => e.status === 'PAID');
+  const isForeclosed = loan.status === 'FORECLOSED';
 
   await prisma.loan.update({
     where: { id: loanId },
     data: {
       paidEmis,
       remainingEmis,
-      outstandingAmount,
+      // A foreclosed loan is settled in full regardless of what the installment rows sum to.
+      outstandingAmount: isForeclosed ? 0 : outstandingAmount,
       nextEmiDate,
-      status: allPaid ? 'CLOSED' : loan.status === 'CLOSED' ? 'ACTIVE' : loan.status,
+      status: isForeclosed ? 'FORECLOSED' : allPaid ? 'CLOSED' : loan.status === 'CLOSED' ? 'ACTIVE' : loan.status,
     },
   });
 }
@@ -159,7 +161,9 @@ loanEmiRouter.post('/bulk-pay', validateBody(BulkPayLoanEmiSchema), async (req, 
     const { loan, error } = await loadOwnedLoan(req);
     if (error) return res.status(error.status).json({ error: error.message });
 
-    const { mode, description } = req.body;
+    const { mode, description, foreclosureAmount, foreclosureDate } = req.body;
+    const isForeclosure = mode === 'FORECLOSURE';
+    const settlementDate = isForeclosure ? (foreclosureDate ? new Date(foreclosureDate) : new Date()) : null;
 
     const where: any = { loanId: loan!.id, status: { not: 'PAID' } };
     if (mode === 'UNTIL_CURRENT_MONTH') {
@@ -178,12 +182,28 @@ loanEmiRouter.post('/bulk-pay', validateBody(BulkPayLoanEmiSchema), async (req, 
             data: {
               status: 'PAID',
               paidAmount: t.dueAmount,
-              paymentDate: t.dueDate,
-              description: description ?? t.description,
+              // A foreclosure settles every remaining installment on the settlement date itself.
+              paymentDate: isForeclosure ? settlementDate! : t.dueDate,
+              description: description ?? (isForeclosure ? 'Settled by foreclosure' : t.description),
             },
           })
         )
       );
+    }
+
+    if (isForeclosure) {
+      await prisma.loan.update({
+        where: { id: loan!.id },
+        data: {
+          status: 'FORECLOSED',
+          foreclosureDate: settlementDate!,
+          foreclosureAmount,
+          endDate: settlementDate!,
+        },
+      });
+    }
+
+    if (targets.length > 0 || isForeclosure) {
       await syncLoanFromEmis(loan!.id);
     }
 

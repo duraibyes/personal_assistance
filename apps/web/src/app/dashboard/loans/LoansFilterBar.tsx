@@ -8,6 +8,7 @@ const statusOptions = [
   { value: '', label: 'All Statuses' },
   { value: 'ACTIVE', label: 'Active' },
   { value: 'CLOSED', label: 'Closed' },
+  { value: 'FORECLOSED', label: 'Foreclosed' },
 ]
 
 const typeOptions = [

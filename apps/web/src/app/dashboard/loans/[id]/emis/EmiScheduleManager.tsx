@@ -30,7 +30,7 @@ const paymentSchema = z.object({
 })
 type PaymentFormValues = z.infer<typeof paymentSchema>
 
-type BulkMode = 'ALL' | 'UNTIL_CURRENT_MONTH'
+type BulkMode = 'ALL' | 'UNTIL_CURRENT_MONTH' | 'FORECLOSURE'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
 
@@ -58,8 +58,13 @@ export function EmiScheduleManager({ loanId, emis, token }: { loanId: string; em
   const [bulkModalOpen, setBulkModalOpen] = useState(false)
   const [bulkMode, setBulkMode] = useState<BulkMode>('UNTIL_CURRENT_MONTH')
   const [bulkDescription, setBulkDescription] = useState('')
+  const [foreclosureAmount, setForeclosureAmount] = useState('')
   const [isBulkSubmitting, setIsBulkSubmitting] = useState(false)
   const [bulkError, setBulkError] = useState<string | null>(null)
+
+  const unpaidCount = emis.filter((e) => e.status !== 'PAID').length
+  const parsedForeclosureAmount = Number(foreclosureAmount)
+  const isForeclosureAmountValid = foreclosureAmount.trim() !== '' && Number.isFinite(parsedForeclosureAmount) && parsedForeclosureAmount > 0
 
   const { register, handleSubmit, reset, formState: { errors, isValid, isSubmitting } } = useForm<PaymentFormValues>({
     resolver: zodResolver(paymentSchema),
@@ -125,18 +130,27 @@ export function EmiScheduleManager({ loanId, emis, token }: { loanId: string; em
   const openBulkModal = () => {
     setBulkMode('UNTIL_CURRENT_MONTH')
     setBulkDescription('')
+    setForeclosureAmount('')
     setBulkError(null)
     setBulkModalOpen(true)
   }
 
   const submitBulkPay = async () => {
+    if (bulkMode === 'FORECLOSURE' && !isForeclosureAmountValid) {
+      setBulkError('Enter a foreclosure amount greater than 0')
+      return
+    }
     setBulkError(null)
     setIsBulkSubmitting(true)
     try {
       const res = await fetch(`${API_BASE}/loans/${loanId}/emis/bulk-pay`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ mode: bulkMode, description: bulkDescription || null }),
+        body: JSON.stringify({
+          mode: bulkMode,
+          description: bulkDescription || null,
+          foreclosureAmount: bulkMode === 'FORECLOSURE' ? parsedForeclosureAmount : undefined,
+        }),
       })
       const responseData = await res.json()
       if (!res.ok) throw new Error(responseData.error || 'Failed to update payments')
@@ -325,18 +339,52 @@ export function EmiScheduleManager({ loanId, emis, token }: { loanId: string; em
                 <span className="block text-xs text-muted-foreground mt-0.5">Only installments whose due date has already arrived (today or earlier) are marked Paid. An installment due later this month is left as-is.</span>
               </span>
             </label>
+
+            <label className="flex items-start gap-3 rounded-xl border border-border p-3 cursor-pointer hover:bg-secondary/40 transition-colors">
+              <input
+                type="radio"
+                name="bulk-mode"
+                className="mt-1 accent-primary"
+                checked={bulkMode === 'FORECLOSURE'}
+                onChange={() => setBulkMode('FORECLOSURE')}
+              />
+              <span>
+                <span className="block text-sm font-medium text-foreground">Foreclosure (close the loan early)</span>
+                <span className="block text-xs text-muted-foreground mt-0.5">
+                  Settle the loan with a single payment. All {unpaidCount} remaining installment{unpaidCount === 1 ? '' : 's'} are marked Paid as of today and the loan is marked Foreclosed.
+                </span>
+              </span>
+            </label>
           </div>
+
+          {bulkMode === 'FORECLOSURE' && (
+            <Input
+              label="Foreclosure Amount (₹)"
+              type="number"
+              step="0.01"
+              min="0"
+              autoFocus
+              placeholder="Total settlement amount paid to the lender"
+              value={foreclosureAmount}
+              onChange={(e) => setForeclosureAmount(e.target.value)}
+              error={foreclosureAmount.trim() !== '' && !isForeclosureAmountValid ? 'Enter an amount greater than 0' : undefined}
+            />
+          )}
 
           <Input
             label="Description (Optional)"
-            placeholder="Applied to every installment marked paid"
+            placeholder={bulkMode === 'FORECLOSURE' ? 'e.g. Foreclosed via NEFT' : 'Applied to every installment marked paid'}
             value={bulkDescription}
             onChange={(e) => setBulkDescription(e.target.value)}
           />
 
           <div className="flex justify-end gap-3 mt-2">
             <CancelButton onClick={() => setBulkModalOpen(false)} disabled={isBulkSubmitting} />
-            <SaveButton onClick={submitBulkPay} loading={isBulkSubmitting} disabled={isBulkSubmitting}>
+            <SaveButton
+              onClick={submitBulkPay}
+              loading={isBulkSubmitting}
+              disabled={isBulkSubmitting || (bulkMode === 'FORECLOSURE' && !isForeclosureAmountValid)}
+            >
               Apply
             </SaveButton>
           </div>

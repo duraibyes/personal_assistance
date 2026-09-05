@@ -18,11 +18,11 @@ export const dashboardRouter: Router = Router();
 dashboardRouter.get('/summary', async (req, res) => {
   try {
     const userId = req.user!.id;
-    const where = req.user!.isAdmin
-      ? { status: 'ACTIVE' }
-      : { userId, status: 'ACTIVE' };
+    const where = req.user!.isAdmin ? {} : { userId };
 
-    const loans = await prisma.loan.findMany({ where });
+    const loans = await prisma.loan.findMany({
+      where: { ...where, status: 'ACTIVE', isDeleted: false },
+    });
     const totalLoansAmount = loans.reduce((acc, loan) => acc + loan.outstandingAmount, 0);
     const totalMonthlyEmi = loans.reduce((acc, loan) => acc + loan.emiAmount, 0);
 

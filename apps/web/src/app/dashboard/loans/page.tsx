@@ -6,6 +6,11 @@ import LoanActions from './LoanActions'
 import { LoansFilterBar } from './LoansFilterBar'
 import { LoansPagination } from './LoansPagination'
 
+const STATUS_TEXT_STYLES: Record<string, string> = {
+  ACTIVE: 'text-emerald-500 font-medium',
+  FORECLOSED: 'text-amber-600 dark:text-amber-400 font-medium',
+}
+
 interface LoansResponse {
   data: any[]
   total: number
@@ -129,7 +134,7 @@ export default async function LoansPage({
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center justify-between mb-1.5 text-xs">
-                            <span className={loan.status === 'ACTIVE' ? 'text-emerald-500 font-medium' : 'text-muted-foreground font-medium'}>{loan.status}</span>
+                            <span className={STATUS_TEXT_STYLES[loan.status] || 'text-muted-foreground font-medium'}>{loan.status}</span>
                             <span className="text-muted-foreground">{loan.paidEmis} / {loan.numberOfEmis}</span>
                           </div>
                           <div className="h-1.5 w-full rounded-full bg-secondary overflow-hidden">
@@ -183,7 +188,7 @@ export default async function LoansPage({
 
                   <div>
                     <div className="flex items-center justify-between mb-1.5 text-xs">
-                      <span className={loan.status === 'ACTIVE' ? 'text-emerald-500 font-medium' : 'text-muted-foreground font-medium'}>{loan.status}</span>
+                      <span className={STATUS_TEXT_STYLES[loan.status] || 'text-muted-foreground font-medium'}>{loan.status}</span>
                       <span className="text-muted-foreground">{loan.paidEmis} / {loan.numberOfEmis} EMIs</span>
                     </div>
                     <div className="h-1.5 w-full rounded-full bg-secondary overflow-hidden">

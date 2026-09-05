@@ -2,7 +2,7 @@ import React from 'react'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { generateAmortizationSchedule } from '@repo/shared'
-import { ArrowLeft, Building2, Calendar } from 'lucide-react'
+import { ArrowLeft, Building2, Calendar, ShieldCheck } from 'lucide-react'
 import Link from 'next/link'
 import { DeleteLoanButton } from '@/components/ui/DeleteLoanButton'
 
@@ -60,10 +60,39 @@ export default async function LoanDetailsPage({ params }: { params: { id: string
               <span className="rounded bg-primary/10 px-2 py-0.5 text-[10px] text-primary font-medium uppercase tracking-wider">
                 {loan.loanType}
               </span>
+              {loan.status === 'FORECLOSED' && (
+                <span className="rounded bg-amber-500/15 px-2 py-0.5 text-[10px] text-amber-600 dark:text-amber-400 font-medium uppercase tracking-wider">
+                  Foreclosed
+                </span>
+              )}
             </div>
           </div>
           <DeleteLoanButton loanId={loan.id} loanName={loan.name} token={token} />
         </div>
+
+        {loan.status === 'FORECLOSED' && (
+          <div className="mb-8 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-3xl border border-amber-500/30 bg-amber-500/10 p-5">
+            <span className="flex items-center gap-2 text-sm font-semibold text-amber-700 dark:text-amber-300">
+              <ShieldCheck className="h-5 w-5" /> Loan foreclosed
+            </span>
+            {loan.foreclosureDate && (
+              <span className="text-sm text-muted-foreground">
+                Closed on{' '}
+                <span className="font-medium text-foreground">
+                  {new Date(loan.foreclosureDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </span>
+              </span>
+            )}
+            {loan.foreclosureAmount != null && (
+              <span className="text-sm text-muted-foreground">
+                Settlement amount{' '}
+                <span className="font-medium text-foreground">
+                  ₹{loan.foreclosureAmount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </span>
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Top Stats Cards */}
         <div className="grid grid-cols-1 gap-6 md:grid-cols-4 mb-8">

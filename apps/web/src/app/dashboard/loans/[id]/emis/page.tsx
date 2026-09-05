@@ -2,7 +2,7 @@ import React from 'react'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, ShieldCheck } from 'lucide-react'
 import { EmiScheduleManager } from './EmiScheduleManager'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
@@ -55,6 +55,30 @@ export default async function LoanEmisPage({ params }: { params: { id: string } 
             <p className="text-sm text-muted-foreground">{loan.lender} · {loan.numberOfEmis} monthly installments</p>
           </div>
         </div>
+
+        {loan.status === 'FORECLOSED' && (
+          <div className="mb-6 flex flex-wrap items-center gap-x-6 gap-y-2 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4">
+            <span className="flex items-center gap-2 text-sm font-semibold text-amber-700 dark:text-amber-300">
+              <ShieldCheck className="h-5 w-5" /> Loan foreclosed
+            </span>
+            {loan.foreclosureDate && (
+              <span className="text-sm text-muted-foreground">
+                Closed on{' '}
+                <span className="font-medium text-foreground">
+                  {new Date(loan.foreclosureDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                </span>
+              </span>
+            )}
+            {loan.foreclosureAmount != null && (
+              <span className="text-sm text-muted-foreground">
+                Settlement amount{' '}
+                <span className="font-medium text-foreground">
+                  ₹{Number(loan.foreclosureAmount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                </span>
+              </span>
+            )}
+          </div>
+        )}
 
         <EmiScheduleManager loanId={loan.id} emis={emis} token={token} />
       </div>

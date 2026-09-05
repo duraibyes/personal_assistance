@@ -89,7 +89,9 @@ model Loan {
   remainingEmis     Int
   outstandingAmount Float
   nextEmiDate       DateTime
-  status            String    @default("ACTIVE") // ACTIVE, CLOSED
+  status            String    @default("ACTIVE") // ACTIVE, CLOSED, FORECLOSED
+  foreclosureDate   DateTime?
+  foreclosureAmount Float?
   processingFee     Float?
   insuranceAmount   Float?
   bouncingCharge    Float?

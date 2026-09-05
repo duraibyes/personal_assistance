@@ -114,10 +114,18 @@ export const UpdateLoanEmiSchema = z.object({
   documentId: z.string().optional().nullable(),
 });
 
-export const BulkPayLoanEmiSchema = z.object({
-  mode: z.enum(["ALL", "UNTIL_CURRENT_MONTH"]),
-  description: z.string().optional().nullable(),
-});
+export const BulkPayLoanEmiSchema = z
+  .object({
+    mode: z.enum(["ALL", "UNTIL_CURRENT_MONTH", "FORECLOSURE"]),
+    description: z.string().optional().nullable(),
+    /** Settlement amount actually paid to close the loan early. Required when mode is FORECLOSURE. */
+    foreclosureAmount: z.coerce.number().positive("Foreclosure amount must be greater than 0").optional().nullable(),
+    foreclosureDate: optionalDateInput,
+  })
+  .refine(
+    (data) => data.mode !== "FORECLOSURE" || (data.foreclosureAmount !== undefined && data.foreclosureAmount !== null),
+    { message: "Foreclosure amount is required", path: ["foreclosureAmount"] }
+  );
 
 export type SignupInput = z.infer<typeof SignupSchema>;
 export type LoginInput = z.infer<typeof LoginSchema>;
