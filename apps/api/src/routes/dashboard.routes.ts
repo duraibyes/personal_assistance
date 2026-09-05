@@ -18,7 +18,9 @@ export const dashboardRouter: Router = Router();
 dashboardRouter.get('/summary', async (req, res) => {
   try {
     const userId = req.user!.id;
-    const where = req.user!.isAdmin ? {} : { userId };
+    const where = req.user!.isAdmin
+      ? { status: 'ACTIVE' }
+      : { userId, status: 'ACTIVE' };
 
     const loans = await prisma.loan.findMany({ where });
     const totalLoansAmount = loans.reduce((acc, loan) => acc + loan.outstandingAmount, 0);
