@@ -22,7 +22,7 @@ Scan the QR code with **Expo Go** on your phone (same Wi‑Fi for local; for liv
 
 ## Features (parity with web)
 
-- Login / signup (JWT in SecureStore)
+- Login / signup (JWT in SecureStore); after a reinstall the phone offers "Continue as …" (fingerprint/PIN), change password, forget this device
 - Home: savings hero, 6-month income vs expense chart, category breakdown, upcoming dues, recent transactions
 - Loans: search + status/type filters, add/edit with AI document extraction (upload or pick from library), attachments, amortization schedule, delete
 - EMI schedule: record/edit each installment with a receipt upload, bulk "mark paid" (all / until this month) and foreclosure
@@ -30,6 +30,7 @@ Scan the QR code with **Expo Go** on your phone (same Wi‑Fi for local; for liv
 - Income: search + category/date filters, add/edit, delete
 - Recurring bills and categories: add, edit, activate/pause, delete
 - Native date pickers, confirm dialogs, inline field validation
+- Professor: Ask (voice → English & Tamil) and Kids (12 learning sections; Bedtime stories with slow narration, soft music, English/Tamil)
 - Theme taken from the WealthGuard logo (navy → teal background, blue → green accents)
 
 ## Build installable APK

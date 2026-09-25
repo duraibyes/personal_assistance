@@ -17,11 +17,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Audio } from 'expo-av';
 import type { DocumentPickerAsset } from 'expo-document-picker';
-import { GradientBackground } from '../components/ui/Screen';
-import { Logo } from '../components/ui/Bits';
-import { BRAND_GRADIENT, COLORS } from '../lib/config';
-import { pickDocument } from '../lib/documents';
-import { MAX_RECORDING_MS, RECORDING_OPTIONS, transcribe, Transcription } from '../lib/assistant';
+import { GradientBackground } from '../../components/ui/Screen';
+import { Logo } from '../../components/ui/Bits';
+import { BRAND_GRADIENT, COLORS } from '../../lib/config';
+import { pickDocument } from '../../lib/documents';
+import { MAX_RECORDING_MS, RECORDING_OPTIONS, transcribe, Transcription } from '../../lib/assistant';
 
 type Voice = {
   uri: string;
@@ -185,7 +185,7 @@ export default function ProfessorScreen() {
           </Pressable>
           <Logo size={34} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.title}>Professor</Text>
+            <Text style={styles.title}>Ask Professor</Text>
             <Text style={styles.subtitle}>Speak in Tamil or English</Text>
           </View>
         </View>
