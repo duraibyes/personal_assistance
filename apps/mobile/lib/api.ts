@@ -45,6 +45,13 @@ type ApiOptions = {
   formData?: FormData;
 };
 
+let onUnauthorized: (() => void) | null = null;
+
+/** Registered by AuthProvider so an expired session sends the user back to sign-in. */
+export function setUnauthorizedHandler(handler: (() => void) | null) {
+  onUnauthorized = handler;
+}
+
 export class ApiError extends Error {
   status: number;
   details?: unknown;
@@ -76,6 +83,8 @@ export async function api<T = unknown>(path: string, options: ApiOptions = {}): 
   if (res.status === 204) return undefined as T;
 
   const data = await res.json().catch(() => ({}));
+
+  if (res.status === 401 && token && !path.startsWith('/auth')) onUnauthorized?.();
 
   if (!res.ok) {
     throw new ApiError(data.error || data.message || 'Request failed', res.status, data.details);

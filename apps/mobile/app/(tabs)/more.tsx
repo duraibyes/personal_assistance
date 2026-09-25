@@ -16,13 +16,27 @@ const LINKS: { icon: keyof typeof Ionicons.glyphMap; label: string; hint: string
   { icon: 'repeat-outline', label: 'Recurring bills', hint: 'Rent, subscriptions, reminders', href: '/recurring', color: '#a78bfa' },
   { icon: 'pricetags-outline', label: 'Categories', hint: 'Expense & income categories', href: '/categories', color: COLORS.gold },
   { icon: 'add-circle-outline', label: 'Add loan', hint: 'Upload a loan document to auto-fill', href: '/loan/add', color: COLORS.green },
+  { icon: 'key-outline', label: 'Change password', hint: 'Update your sign-in password', href: '/change-password', color: '#38bdf8' },
 ];
 
 export default function MoreScreen() {
-  const { user, signOut } = useAuth();
+  const { user, signOut, forgetDevice } = useAuth();
   const router = useRouter();
   const [confirmOut, setConfirmOut] = useState(false);
+  const [confirmForget, setConfirmForget] = useState(false);
+  const [forgotten, setForgotten] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  const handleForget = async () => {
+    setLoading(true);
+    try {
+      await forgetDevice();
+      setForgotten(true);
+    } finally {
+      setLoading(false);
+      setConfirmForget(false);
+    }
+  };
 
   const handleSignOut = async () => {
     setLoading(true);
@@ -82,17 +96,43 @@ export default function MoreScreen() {
         </Card>
       </Pressable>
 
+      <Pressable onPress={() => !forgotten && setConfirmForget(true)}>
+        <Card>
+          <View style={styles.row}>
+            <View style={[styles.icon, { backgroundColor: 'rgba(244,63,94,0.15)' }]}>
+              <Ionicons name={forgotten ? 'checkmark-done-outline' : 'phone-portrait-outline'} size={20} color="#fb7185" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.value}>{forgotten ? 'This phone is forgotten' : 'Forget this device'}</Text>
+              <Text style={styles.label}>
+                {forgotten ? 'Next sign-in will need your password' : 'Stop offering “Continue as” on this phone'}
+              </Text>
+            </View>
+          </View>
+        </Card>
+      </Pressable>
+
       <Button title="Sign out" icon="log-out-outline" variant="danger" onPress={() => setConfirmOut(true)} />
       <Text style={styles.version}>WealthGuard v{Constants.expoConfig?.version ?? '—'}</Text>
 
       <ConfirmDialog
         visible={confirmOut}
         title="Sign out?"
-        description="You will need to sign in again to access your data."
+        description="This phone stays remembered — you can tap “Continue” to come back. Use “Forget this device” to require your password."
         confirmLabel="Sign out"
         loading={loading}
         onCancel={() => setConfirmOut(false)}
         onConfirm={handleSignOut}
+      />
+
+      <ConfirmDialog
+        visible={confirmForget}
+        title="Forget this device?"
+        description="You stay signed in now, but after signing out or reinstalling you will need your password on this phone."
+        confirmLabel="Forget"
+        loading={loading}
+        onCancel={() => setConfirmForget(false)}
+        onConfirm={handleForget}
       />
     </Screen>
   );

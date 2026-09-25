@@ -22,6 +22,31 @@ export const LoginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
+/** Stable per-install device id from the mobile app (Android ID / iOS vendor id). */
+const deviceId = z.string().min(8, "Invalid device id").max(128);
+
+export const DeviceInfoSchema = z.object({
+  deviceId,
+  deviceName: z.string().max(100).optional().nullable(),
+});
+
+export const DeviceContinueSchema = z.object({
+  deviceId,
+  userId: z.string().min(1),
+});
+
+export const ChangePasswordSchema = z
+  .object({
+    currentPassword: z.string().min(1, "Current password is required"),
+    newPassword: z.string().min(6, "New password must be at least 6 characters"),
+    /** Keeps this phone remembered while signing every other device out of quick-continue. */
+    deviceId: deviceId.optional().nullable(),
+  })
+  .refine((d) => d.currentPassword !== d.newPassword, {
+    message: "New password must be different from the current one",
+    path: ["newPassword"],
+  });
+
 export const CreateLoanSchema = z.object({
   loanNumber: z.string().optional().nullable(),
   name: z.string().min(1, "Loan name is required"),
@@ -127,6 +152,7 @@ export const BulkPayLoanEmiSchema = z
     { message: "Foreclosure amount is required", path: ["foreclosureAmount"] }
   );
 
+export type ChangePasswordInput = z.infer<typeof ChangePasswordSchema>;
 export type SignupInput = z.infer<typeof SignupSchema>;
 export type LoginInput = z.infer<typeof LoginSchema>;
 export type CreateLoanInput = z.infer<typeof CreateLoanSchema>;

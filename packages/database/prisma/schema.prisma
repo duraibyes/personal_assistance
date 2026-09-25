@@ -25,6 +25,22 @@ model User {
   documents         Document[]
   expenseCategories ExpenseCategory[]
   recurringExpenses RecurringExpense[]
+  trustedDevices    TrustedDevice[]
+}
+
+/// A phone the user has signed in on. Lets the mobile app offer "Continue as …" after a reinstall.
+/// deviceHash is an HMAC of the device id (keyed with JWT_SECRET) — the raw id is never stored.
+model TrustedDevice {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deviceHash String
+  deviceName String?
+  lastUsedAt DateTime @default(now())
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, deviceHash])
+  @@index([deviceHash])
 }
 
 model ExpenseCategory {
