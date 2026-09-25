@@ -1,0 +1,626 @@
+<title>__TITLE__</title>
+<meta name="color-scheme" content="light dark">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+  /* WealthGuard palette: navy-tinted neutrals + the validated chart steps from apps/web globals.css */
+  :root {
+    color-scheme: light;
+    --ground: #f3f6fa;
+    --paper: #ffffff;
+    --ink: #0e1a2b;
+    --ink-2: #46546a;
+    --muted: #6f7c92;
+    --rule: #e1e7ef;
+    --rule-strong: #c3cddb;
+    --wash: #e9eef5;
+    --income: #2a78d6;
+    --expense: #e34948;
+    --emi: #4a3aa7;
+    --good: #0f7a3d;
+    --good-wash: #e3f3e9;
+    --bad: #c23434;
+    --bad-wash: #fbe8e8;
+    --sample: #8a5a00;
+    --sample-wash: #fdf2d8;
+    --focus: #2a78d6;
+    --shadow: 0 10px 28px rgb(14 26 43 / 0.12);
+    --sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --ground: #0a111d;
+      --paper: #101a2a;
+      --ink: #e8edf5;
+      --ink-2: #adb8c9;
+      --muted: #8491a6;
+      --rule: #1c2840;
+      --rule-strong: #2c3a54;
+      --wash: #17233a;
+      --income: #3987e5;
+      --expense: #e66767;
+      --emi: #9085e9;
+      --good: #4cc784;
+      --good-wash: #10301e;
+      --bad: #f27d7d;
+      --bad-wash: #3a1a1e;
+      --sample: #f3c35a;
+      --sample-wash: #33270c;
+      --focus: #6aa8f0;
+      --shadow: 0 10px 28px rgb(0 0 0 / 0.45);
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --ground: #0a111d;
+    --paper: #101a2a;
+    --ink: #e8edf5;
+    --ink-2: #adb8c9;
+    --muted: #8491a6;
+    --rule: #1c2840;
+    --rule-strong: #2c3a54;
+    --wash: #17233a;
+    --income: #3987e5;
+    --expense: #e66767;
+    --emi: #9085e9;
+    --good: #4cc784;
+    --good-wash: #10301e;
+    --bad: #f27d7d;
+    --bad-wash: #3a1a1e;
+    --sample: #f3c35a;
+    --sample-wash: #33270c;
+    --focus: #6aa8f0;
+    --shadow: 0 10px 28px rgb(0 0 0 / 0.45);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    background: var(--ground);
+    color: var(--ink);
+    font: 15px/1.55 var(--sans);
+    font-feature-settings: "cv11";
+    -webkit-font-smoothing: antialiased;
+  }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+  .sheet { max-width: 1100px; margin: 0 auto; padding: 40px 24px 72px; display: grid; gap: 44px; }
+
+  /* Masthead */
+  .masthead { display: grid; gap: 16px; padding-bottom: 24px; border-bottom: 1px solid var(--rule-strong); }
+  .eyebrow { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .sample-flag { letter-spacing: 0.04em; color: var(--sample); background: var(--sample-wash); padding: 2px 8px; border-radius: 6px; }
+  h1 { margin: 0; font-size: clamp(32px, 5vw, 46px); line-height: 1.08; font-weight: 700; letter-spacing: -0.025em; text-wrap: balance; }
+  .meta { margin: 0; display: flex; flex-wrap: wrap; gap: 10px 40px; }
+  .meta div { display: grid; gap: 1px; }
+  .meta dt { font-size: 12px; color: var(--muted); }
+  .meta dd { margin: 0; font-weight: 500; }
+
+  /* The statement equation */
+  .equation {
+    background: var(--paper);
+    border: 1px solid var(--rule);
+    border-radius: 16px;
+    padding: 26px 28px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 18px 20px;
+  }
+  .term { flex: 1 1 150px; min-width: 0; display: grid; gap: 6px; }
+  .term .label { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: var(--ink-2); }
+  .swatch { width: 10px; height: 10px; border-radius: 3px; background: var(--c); flex: none; }
+  .term .value { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: clamp(20px, 2.5vw, 27px); font-weight: 500; letter-spacing: -0.02em; white-space: nowrap; }
+  .term .sub { font-size: 12px; color: var(--muted); }
+  .term.net { flex-basis: 200px; padding-left: 20px; border-left: 2px solid var(--rule-strong); }
+  .value.good { color: var(--good); }
+  .value.bad { color: var(--bad); }
+  .op { flex: none; align-self: center; font-family: var(--mono); font-size: 24px; color: var(--muted); padding-top: 4px; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 2px 9px; border-radius: 999px; white-space: nowrap; }
+  .pill.good { color: var(--good); background: var(--good-wash); }
+  .pill.bad { color: var(--bad); background: var(--bad-wash); }
+  @media (max-width: 760px) {
+    .equation { display: grid; grid-template-columns: 1fr 1fr; }
+    .op { display: none; }
+    .term.net { grid-column: 1 / -1; padding: 16px 0 0; border-left: 0; border-top: 2px solid var(--rule-strong); }
+  }
+
+  /* Sections */
+  section { display: grid; gap: 18px; min-width: 0; }
+  .section-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 12px 24px; padding-bottom: 10px; border-bottom: 1px solid var(--rule); }
+  h2 { margin: 0; font-size: 20px; font-weight: 650; letter-spacing: -0.012em; }
+  h3 { margin: 0; font-size: 15px; font-weight: 600; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--ink-2); }
+  .key { display: inline-flex; align-items: center; gap: 7px; }
+  .key i { width: 12px; height: 12px; border-radius: 3px; background: var(--c); }
+  .key i.line { height: 2px; border-radius: 1px; width: 16px; }
+
+  /* Charts */
+  .chart { position: relative; }
+  .chart svg { display: block; overflow: visible; }
+  .chart text { fill: var(--muted); font: 11px var(--mono); }
+  .chart text.end-label { fill: var(--ink-2); font: 500 12px var(--sans); }
+  .chart .grid { stroke: var(--rule); stroke-width: 1; }
+  .chart .base { stroke: var(--rule-strong); stroke-width: 1; }
+  .chart .s-income { fill: var(--income); }
+  .chart .s-expense { fill: var(--expense); }
+  .chart .s-emi { fill: var(--emi); }
+  .chart .hit { fill: transparent; }
+  .chart g.col { transition: opacity 0.12s; }
+  .chart g.col.dim { opacity: 0.35; }
+  .chart .l-income { fill: none; stroke: var(--income); stroke-width: 2; stroke-linejoin: round; }
+  .chart .l-out { fill: none; stroke: var(--expense); stroke-width: 2; stroke-linejoin: round; }
+  .chart .dot { stroke: var(--paper); stroke-width: 2; }
+  .chart .dot.income { fill: var(--income); }
+  .chart .dot.out { fill: var(--expense); }
+  .chart .xhair { opacity: 0; }
+  .chart .xhair.on { opacity: 1; }
+  .chart .xhair line { stroke: var(--rule-strong); stroke-dasharray: 3 3; }
+  .tooltip {
+    position: absolute; top: 0; left: 0; z-index: 2; pointer-events: none;
+    min-width: 200px; padding: 10px 12px; border-radius: 10px;
+    background: var(--paper); border: 1px solid var(--rule-strong); box-shadow: var(--shadow);
+    font-size: 13px; opacity: 0; transition: opacity 0.12s;
+  }
+  .tooltip.show { opacity: 1; }
+  .tt-h { font-weight: 600; margin-bottom: 6px; }
+  .tt-row { display: flex; justify-content: space-between; align-items: center; gap: 18px; padding: 1px 0; color: var(--ink-2); }
+  .tt-row span:first-child { display: inline-flex; align-items: center; gap: 7px; }
+  .tt-row .num { color: var(--ink); }
+  .tt-row.total { margin-top: 5px; padding-top: 6px; border-top: 1px solid var(--rule); font-weight: 600; color: var(--ink); }
+  .tt-row .k { width: 9px; height: 9px; border-radius: 2px; background: var(--c); }
+  details summary { cursor: pointer; width: fit-content; font-size: 13px; color: var(--ink-2); }
+  details[open] summary { margin-bottom: 10px; }
+
+  /* Breakdown */
+  .split { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 330px), 1fr)); gap: 36px 56px; }
+  .panel { display: grid; gap: 14px; align-content: start; }
+  .panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .panel-total { font-size: 13px; color: var(--muted); }
+  .bars { list-style: none; margin: 0; padding: 0; display: grid; gap: 11px; }
+  .bar-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 5px 12px; align-items: baseline; }
+  .bar-name { font-weight: 500; overflow-wrap: anywhere; }
+  .bar-val { font-size: 13px; white-space: nowrap; }
+  .bar-val .share { display: inline-block; min-width: 4.5ch; margin-left: 10px; text-align: right; color: var(--muted); }
+  .track { grid-column: 1 / -1; height: 8px; border-radius: 4px; background: var(--wash); overflow: hidden; }
+  .fill { display: block; height: 100%; border-radius: 0 4px 4px 0; background: var(--c); }
+  .empty { margin: 0; color: var(--muted); font-size: 14px; }
+
+  /* Ledger */
+  .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+  .seg { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 3px; border: 1px solid var(--rule-strong); border-radius: 10px; background: var(--paper); }
+  .seg button {
+    display: inline-flex; align-items: center; gap: 6px; padding: 6px 11px; border: 0; border-radius: 7px;
+    background: transparent; color: var(--ink-2); font: 500 13px var(--sans); cursor: pointer;
+  }
+  .seg button:hover { background: var(--wash); }
+  .seg button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+  .seg .count { font: 12px var(--mono); opacity: 0.75; }
+  .search {
+    width: 240px; max-width: 100%; padding: 8px 12px; border: 1px solid var(--rule-strong); border-radius: 10px;
+    background: var(--paper); color: var(--ink); font: 14px var(--sans);
+  }
+  .search::placeholder { color: var(--muted); }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th { padding: 8px 12px; text-align: left; white-space: nowrap; font-size: 11.5px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--rule-strong); }
+  td { padding: 9px 12px; vertical-align: top; border-bottom: 1px solid var(--rule); }
+  th.amt, td.amt { text-align: right; white-space: nowrap; font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  td.date { white-space: nowrap; color: var(--ink-2); font-family: var(--mono); font-size: 13px; font-variant-numeric: tabular-nums; }
+  td.pos { color: var(--good); }
+  td.neg-total { color: var(--bad); }
+  tfoot td { border-bottom: 0; border-top: 1px solid var(--rule-strong); font-weight: 600; }
+  .entry { font-weight: 500; }
+  .detail { display: block; font-size: 13px; color: var(--muted); }
+  .kind { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 500; color: var(--ink-2); white-space: nowrap; }
+  .kind::before { content: ""; width: 8px; height: 8px; border-radius: 2px; background: var(--c); }
+  .more { justify-self: start; padding: 8px 14px; border: 1px solid var(--rule-strong); border-radius: 10px; background: var(--paper); color: var(--ink); font: 500 13px var(--sans); cursor: pointer; }
+  .more:hover { background: var(--wash); }
+
+  .notes { display: grid; gap: 6px; max-width: 72ch; padding-top: 18px; border-top: 1px solid var(--rule); font-size: 13px; color: var(--muted); }
+  .notes p { margin: 0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tooltip, .chart g.col { transition: none; }
+  }
+</style>
+
+<main class="sheet">
+  <header class="masthead">
+    <div class="eyebrow" id="eyebrow">WealthGuard · Income &amp; expense statement</div>
+    <h1>__PERIOD__</h1>
+    <dl class="meta" id="meta"></dl>
+  </header>
+
+  <section class="equation" id="equation" aria-label="Income minus expenses and loan EMIs equals net savings"></section>
+
+  <section>
+    <div class="section-head">
+      <h2 id="trend-title">Month by month</h2>
+      <div class="legend" id="trend-legend"></div>
+    </div>
+    <div class="chart" id="trend">
+      <div id="trend-svg"></div>
+      <div class="tooltip" id="trend-tip" aria-hidden="true"></div>
+    </div>
+    <details id="trend-details">
+      <summary>Show monthly figures as a table</summary>
+      <div class="table-wrap"><table id="trend-table"></table></div>
+    </details>
+  </section>
+
+  <section>
+    <div class="section-head"><h2>Where it came from, where it went</h2></div>
+    <div class="split" id="breakdown"></div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Ledger</h2>
+      <div class="controls">
+        <div class="seg" id="kind-filter" role="group" aria-label="Filter entries by type"></div>
+        <input class="search" id="search" type="search" placeholder="Search entries" aria-label="Search entries">
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="ledger">
+        <thead>
+          <tr><th>Date</th><th>Entry</th><th>Type</th><th>Category</th><th>Method</th><th class="amt">Amount</th></tr>
+        </thead>
+        <tbody id="ledger-body"></tbody>
+        <tfoot id="ledger-foot"></tfoot>
+      </table>
+    </div>
+    <button class="more" id="show-all" type="button" hidden></button>
+  </section>
+
+  <footer class="notes" id="notes">
+    <p>Loan EMIs count on the day they were paid, at the amount paid. A foreclosure appears once, at the settlement amount, in place of the installments it closed.</p>
+    <p>Only recorded income and expense entries are included. Purchases, vehicle service, fuel and insurance records, and upcoming recurring bills are not.</p>
+  </footer>
+</main>
+
+<script type="application/json" id="report-data">/*__REPORT_DATA__*/</script>
+<script>
+(() => {
+  const data = JSON.parse(document.getElementById('report-data').textContent);
+  const { meta, summary: s } = data;
+  const $ = (sel) => document.querySelector(sel);
+  const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const MINUS = '−';
+  const inr2 = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const inr0 = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 });
+  const money = (v, fmt = inr2) => (v < 0 ? MINUS : '') + fmt.format(Math.abs(v));
+  const one = (n) => String(Math.round(n * 10) / 10);
+  // Indian short scale: thousand (k), lakh (L), crore (Cr)
+  const compact = (v) => {
+    const a = Math.abs(v);
+    const sign = v < 0 ? MINUS : '';
+    if (a >= 1e7) return `${sign}₹${one(a / 1e7)}Cr`;
+    if (a >= 1e5) return `${sign}₹${one(a / 1e5)}L`;
+    if (a >= 1e3) return `${sign}₹${one(a / 1e3)}k`;
+    return `${sign}₹${Math.round(a)}`;
+  };
+  const parseIso = (iso) => { const [y, m, d] = iso.split('-').map(Number); return { y, m, d }; };
+  const fmtDay = (iso, withYear = true) => { const { y, m, d } = parseIso(iso); return `${d} ${MONTHS[m - 1]}${withYear ? ` ${y}` : ''}`; };
+  const isoOf = (dt) => `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+  const plural = (n, a, b) => `${n} ${n === 1 ? a : b}`;
+  const pretty = (v) => String(v ?? '').replace(/_/g, ' ');
+
+  /* ---------- Masthead ---------- */
+  if (meta.sample) $('#eyebrow').insertAdjacentHTML('beforeend', '<span class="sample-flag">Sample data — not real figures</span>');
+  const entryCount = s.counts.incomes + s.counts.expenses + (meta.includesEmi ? s.counts.emis : 0);
+  const generated = new Date(meta.generatedAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+  $('#meta').innerHTML = [
+    ['Account', esc(meta.scope)],
+    ['Period', `${fmtDay(meta.from)} – ${fmtDay(meta.to)}`],
+    ['Entries', `<span class="num">${entryCount}</span>`],
+    ['Generated', esc(generated)],
+  ].map(([k, v]) => `<div><dt>${k}</dt><dd>${v}</dd></div>`).join('');
+
+  /* ---------- Equation ---------- */
+  const terms = [
+    { label: 'Income', color: 'var(--income)', value: s.totalIncome, sub: plural(s.counts.incomes, 'entry', 'entries') },
+    { label: 'Expenses', color: 'var(--expense)', value: s.totalExpenses, sub: plural(s.counts.expenses, 'entry', 'entries') },
+  ];
+  if (meta.includesEmi) terms.push({ label: 'Loan EMIs', color: 'var(--emi)', value: s.totalEmi, sub: plural(s.counts.emis, 'payment', 'payments') });
+  const termHtml = (t) => `<div class="term"><div class="label"><span class="swatch" style="--c:${t.color}"></span>${t.label}</div><div class="value" title="${inr2.format(t.value)}">${inr0.format(t.value)}</div><div class="sub">${t.sub}</div></div>`;
+  const saved = s.net >= 0;
+  const rate = s.savingsRate == null
+    ? 'No income recorded'
+    : saved ? `${s.savingsRate.toFixed(1)}% of income saved` : `${Math.abs(s.savingsRate).toFixed(1)}% more than income`;
+  $('#equation').innerHTML =
+    terms.map(termHtml).join(`<div class="op" aria-hidden="true">${MINUS}</div>`) +
+    '<div class="op" aria-hidden="true">=</div>' +
+    `<div class="term net"><div class="label">${saved ? 'Net savings' : 'Shortfall'}</div>` +
+    `<div class="value ${saved ? 'good' : 'bad'}" title="${money(s.net)}">${money(s.net, inr0)}</div>` +
+    `<div class="sub"><span class="pill ${saved ? 'good' : 'bad'}"><span aria-hidden="true">${saved ? '▲' : '▼'}</span>${rate}</span></div></div>`;
+
+  /* ---------- Trend chart ---------- */
+  const isMonthly = data.monthly.length > 1;
+  const svgHost = $('#trend-svg');
+  const tip = $('#trend-tip');
+  const keyHtml = (label, color, line) => `<span class="key"><i class="${line ? 'line' : ''}" style="--c:${color}"></i>${label}</span>`;
+
+  function niceScale(peak, ticks) {
+    const raw = peak / ticks;
+    const mag = 10 ** Math.floor(Math.log10(raw));
+    const norm = raw / mag;
+    const step = (norm <= 1 ? 1 : norm <= 2 ? 2 : norm <= 2.5 ? 2.5 : norm <= 5 ? 5 : 10) * mag;
+    return { step, max: Math.ceil(peak / step) * step };
+  }
+  function axisY(W, m, ih, max, step) {
+    let out = '';
+    for (let v = 0; v <= max + step / 2; v += step) {
+      const yy = m.t + ih - (v / max) * ih;
+      out += `<line class="grid" x1="${m.l}" x2="${W - m.r}" y1="${yy}" y2="${yy}"/><text x="${m.l - 10}" y="${yy + 4}" text-anchor="end">${compact(v)}</text>`;
+    }
+    return out;
+  }
+  const roundTop = (x, top, w, h, r) => {
+    r = Math.min(r, w / 2, h);
+    return `M${x},${top + h}V${top + r}Q${x},${top} ${x + r},${top}H${x + w - r}Q${x + w},${top} ${x + w},${top + r}V${top + h}Z`;
+  };
+  const tipRow = (label, value, color, cls = '') =>
+    `<div class="tt-row ${cls}"><span>${color ? `<i class="k" style="--c:${color}"></i>` : ''}${label}</span><span class="num">${value}</span></div>`;
+
+  function showTip(html, px, py) {
+    tip.innerHTML = html;
+    tip.classList.add('show');
+    const hostW = svgHost.clientWidth;
+    let left = px + 16;
+    if (left + tip.offsetWidth > hostW) left = px - tip.offsetWidth - 16;
+    tip.style.transform = `translate(${Math.max(0, left)}px, ${Math.max(0, py - tip.offsetHeight / 2)}px)`;
+  }
+  function hideTip() {
+    tip.classList.remove('show');
+    svgHost.querySelectorAll('g.col.dim').forEach((g) => g.classList.remove('dim'));
+    svgHost.querySelector('.xhair')?.classList.remove('on');
+  }
+
+  function drawMonthly(W) {
+    const months = data.monthly;
+    const H = 290;
+    const m = { t: 14, r: 8, b: 30, l: 62 };
+    const iw = W - m.l - m.r;
+    const ih = H - m.t - m.b;
+    const peak = Math.max(1, ...months.map((x) => Math.max(x.income, x.expenses + x.emi)));
+    const { max, step } = niceScale(peak, 4);
+    const y = (v) => m.t + ih - (v / max) * ih;
+    const band = iw / months.length;
+    const bw = Math.max(3, Math.min(26, (band - 14) / 2));
+    const labelEvery = Math.ceil(months.length / Math.max(1, Math.floor(iw / 58)));
+    let svg = axisY(W, m, ih, max, step);
+    months.forEach((mo, i) => {
+      const cx = m.l + band * i + band / 2;
+      const xIn = cx - bw - 1.5;
+      const xOut = cx + 1.5;
+      let g = `<g class="col" data-i="${i}">`;
+      if (mo.income > 0) g += `<path class="s-income" d="${roundTop(xIn, y(mo.income), bw, y(0) - y(mo.income), 4)}"/>`;
+      const eTop = y(mo.expenses);
+      const eH = y(0) - eTop;
+      if (mo.emi > 0) {
+        if (eH > 0) g += `<rect class="s-expense" x="${xOut}" y="${eTop}" width="${bw}" height="${eH}"/>`;
+        const top = y(mo.expenses + mo.emi);
+        const h = eTop - top - (eH > 0 ? 2 : 0);
+        if (h > 0) g += `<path class="s-emi" d="${roundTop(xOut, top, bw, h, 4)}"/>`;
+      } else if (eH > 0) {
+        g += `<path class="s-expense" d="${roundTop(xOut, eTop, bw, eH, 4)}"/>`;
+      }
+      g += `<rect class="hit" x="${m.l + band * i}" y="${m.t}" width="${band}" height="${ih + m.b}"/></g>`;
+      svg += g;
+      if (i % labelEvery === 0) {
+        const { y: yr, m: mn } = parseIso(`${mo.month}-01`);
+        svg += `<text x="${cx}" y="${H - 9}" text-anchor="middle">${MONTHS[mn - 1]}${mn === 1 || i === 0 ? ` ’${String(yr).slice(2)}` : ''}</text>`;
+      }
+    });
+    svg += `<line class="base" x1="${m.l}" x2="${W - m.r}" y1="${y(0)}" y2="${y(0)}"/>`;
+    svgHost.innerHTML = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Monthly income compared with expenses and loan EMIs">${svg}</svg>`;
+  }
+
+  let daily = null;
+  function drawDaily(W) {
+    const f = parseIso(meta.from);
+    const t = parseIso(meta.to);
+    const inc = new Map();
+    const out = new Map();
+    data.incomes.forEach((r) => inc.set(r.date, (inc.get(r.date) || 0) + r.amount));
+    [...data.expenses, ...data.emis].forEach((r) => out.set(r.date, (out.get(r.date) || 0) + r.amount));
+    const pts = [];
+    let ci = 0;
+    let co = 0;
+    for (let d = new Date(f.y, f.m - 1, f.d); d <= new Date(t.y, t.m - 1, t.d); d.setDate(d.getDate() + 1)) {
+      const iso = isoOf(d);
+      ci += inc.get(iso) || 0;
+      co += out.get(iso) || 0;
+      pts.push({ iso, income: ci, out: co });
+    }
+    const H = 290;
+    const m = { t: 14, r: 118, b: 30, l: 62 };
+    const iw = W - m.l - m.r;
+    const ih = H - m.t - m.b;
+    const { max, step } = niceScale(Math.max(1, ci, co), 4);
+    const x = (i) => m.l + (pts.length > 1 ? (i / (pts.length - 1)) * iw : iw / 2);
+    const y = (v) => m.t + ih - (v / max) * ih;
+    const path = (key) => pts.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(p[key]).toFixed(1)}`).join('');
+    let svg = axisY(W, m, ih, max, step);
+    for (let i = 0; i < pts.length; i += 7) svg += `<text x="${x(i)}" y="${H - 9}" text-anchor="middle">${fmtDay(pts[i].iso, false)}</text>`;
+    svg += `<line class="base" x1="${m.l}" x2="${W - m.r}" y1="${y(0)}" y2="${y(0)}"/>`;
+    svg += `<path class="l-out" d="${path('out')}"/><path class="l-income" d="${path('income')}"/>`;
+    const last = pts.length - 1;
+    let yInc = y(ci);
+    let yOut = y(co);
+    if (Math.abs(yInc - yOut) < 16) {
+      const mid = (yInc + yOut) / 2;
+      yInc = ci >= co ? mid - 8 : mid + 8;
+      yOut = ci >= co ? mid + 8 : mid - 8;
+    }
+    svg += `<circle class="dot out" cx="${x(last)}" cy="${y(co)}" r="4"/><circle class="dot income" cx="${x(last)}" cy="${y(ci)}" r="4"/>`;
+    svg += `<text class="end-label" x="${x(last) + 10}" y="${yInc + 4}">Income ${compact(ci)}</text>`;
+    svg += `<text class="end-label" x="${x(last) + 10}" y="${yOut + 4}">Out ${compact(co)}</text>`;
+    svg += `<g class="xhair"><line x1="0" x2="0" y1="${m.t}" y2="${y(0)}"/><circle class="dot out" r="4"/><circle class="dot income" r="4"/></g>`;
+    svg += `<rect class="hit" x="${m.l}" y="${m.t}" width="${iw}" height="${ih}"/>`;
+    svgHost.innerHTML = `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" role="img" aria-label="Running totals of income and money out through the period">${svg}</svg>`;
+    daily = { pts, x, y, m, iw };
+  }
+
+  if (isMonthly) {
+    $('#trend-legend').innerHTML = keyHtml('Income', 'var(--income)') + keyHtml('Expenses', 'var(--expense)') + (meta.includesEmi ? keyHtml('Loan EMIs', 'var(--emi)') : '');
+    const emiCol = meta.includesEmi;
+    $('#trend-table').innerHTML =
+      `<thead><tr><th>Month</th><th class="amt">Income</th><th class="amt">Expenses</th>${emiCol ? '<th class="amt">Loan EMIs</th>' : ''}<th class="amt">Net</th></tr></thead><tbody>` +
+      data.monthly.map((mo) => `<tr><td>${esc(mo.label)}</td><td class="amt">${inr2.format(mo.income)}</td><td class="amt">${inr2.format(mo.expenses)}</td>${emiCol ? `<td class="amt">${inr2.format(mo.emi)}</td>` : ''}<td class="amt ${mo.net < 0 ? 'neg-total' : ''}">${money(mo.net)}</td></tr>`).join('') +
+      `</tbody><tfoot><tr><td>Total</td><td class="amt">${inr2.format(s.totalIncome)}</td><td class="amt">${inr2.format(s.totalExpenses)}</td>${emiCol ? `<td class="amt">${inr2.format(s.totalEmi)}</td>` : ''}<td class="amt ${s.net < 0 ? 'neg-total' : ''}">${money(s.net)}</td></tr></tfoot>`;
+  } else {
+    $('#trend-title').textContent = 'Through the month';
+    $('#trend-legend').innerHTML = keyHtml('Income received', 'var(--income)', true) + keyHtml(meta.includesEmi ? 'Money out (expenses + EMIs)' : 'Expenses', 'var(--expense)', true);
+    $('#trend-details').hidden = true;
+  }
+
+  let lastWidth = 0;
+  const draw = () => {
+    const w = Math.round(svgHost.clientWidth) || 720;
+    if (w === lastWidth) return;
+    lastWidth = w;
+    hideTip();
+    (isMonthly ? drawMonthly : drawDaily)(w);
+  };
+  draw();
+  new ResizeObserver(() => requestAnimationFrame(draw)).observe(svgHost);
+
+  $('#trend').addEventListener('pointermove', (e) => {
+    const box = svgHost.getBoundingClientRect();
+    const px = e.clientX - box.left;
+    const py = e.clientY - box.top;
+    if (isMonthly) {
+      const col = e.target.closest && e.target.closest('g.col');
+      if (!col) return hideTip();
+      svgHost.querySelectorAll('g.col').forEach((g) => g.classList.toggle('dim', g !== col));
+      const mo = data.monthly[Number(col.dataset.i)];
+      showTip(
+        `<div class="tt-h">${esc(mo.label)}</div>` +
+          tipRow('Income', inr0.format(mo.income), 'var(--income)') +
+          tipRow('Expenses', inr0.format(mo.expenses), 'var(--expense)') +
+          (meta.includesEmi ? tipRow('Loan EMIs', inr0.format(mo.emi), 'var(--emi)') : '') +
+          tipRow(mo.net >= 0 ? 'Saved' : 'Shortfall', money(mo.net, inr0), '', 'total'),
+        px, py,
+      );
+      return;
+    }
+    if (!daily || px < daily.m.l - 8 || px > daily.m.l + daily.iw + 8) return hideTip();
+    const n = daily.pts.length;
+    const i = Math.max(0, Math.min(n - 1, Math.round(((px - daily.m.l) / daily.iw) * (n - 1))));
+    const p = daily.pts[i];
+    const hair = svgHost.querySelector('.xhair');
+    const [line, dotOut, dotIn] = hair.children;
+    line.setAttribute('x1', daily.x(i));
+    line.setAttribute('x2', daily.x(i));
+    dotOut.setAttribute('cx', daily.x(i));
+    dotOut.setAttribute('cy', daily.y(p.out));
+    dotIn.setAttribute('cx', daily.x(i));
+    dotIn.setAttribute('cy', daily.y(p.income));
+    hair.classList.add('on');
+    showTip(
+      `<div class="tt-h">By ${fmtDay(p.iso)}</div>` +
+        tipRow('Income received', inr0.format(p.income), 'var(--income)') +
+        tipRow('Money out', inr0.format(p.out), 'var(--expense)') +
+        tipRow('Balance', money(p.income - p.out, inr0), '', 'total'),
+      daily.x(i), py,
+    );
+  });
+  $('#trend').addEventListener('pointerleave', hideTip);
+
+  /* ---------- Breakdown ---------- */
+  function panel(title, groups, color, unit) {
+    const total = groups.reduce((acc, g) => acc + g.total, 0);
+    const head = `<div class="panel-head"><h3>${title}</h3><span class="panel-total num">${inr0.format(total)}</span></div>`;
+    if (!groups.length) return `<div class="panel">${head}<p class="empty">Nothing recorded in this period.</p></div>`;
+    const shown = groups.slice(0, 7);
+    const rest = groups.slice(7);
+    if (rest.length) {
+      shown.push({
+        name: `Other (${rest.length})`,
+        total: rest.reduce((a, g) => a + g.total, 0),
+        count: rest.reduce((a, g) => a + g.count, 0),
+        share: rest.reduce((a, g) => a + g.share, 0),
+      });
+    }
+    const peak = Math.max(...shown.map((g) => g.total)) || 1;
+    const rows = shown.map((g) =>
+      `<li class="bar-row" title="${esc(g.name)}: ${inr2.format(g.total)} across ${plural(g.count, unit[0], unit[1])}">` +
+      `<span class="bar-name">${esc(pretty(g.name))}</span>` +
+      `<span class="bar-val num">${inr0.format(g.total)}<span class="share">${g.share.toFixed(1)}%</span></span>` +
+      `<span class="track"><span class="fill" style="--c:${color};width:${((g.total / peak) * 100).toFixed(2)}%"></span></span></li>`,
+    ).join('');
+    return `<div class="panel">${head}<ol class="bars">${rows}</ol></div>`;
+  }
+  $('#breakdown').innerHTML = [
+    panel('Spending by category', data.expenseByCategory, 'var(--expense)', ['entry', 'entries']),
+    panel('Income by source', data.incomeBySource, 'var(--income)', ['entry', 'entries']),
+    panel('How expenses were paid', data.expenseByPaymentMethod, 'var(--ink-2)', ['entry', 'entries']),
+    meta.includesEmi ? panel('Loan repayments', data.emiByLoan, 'var(--emi)', ['payment', 'payments']) : '',
+  ].join('');
+
+  /* ---------- Ledger ---------- */
+  const KINDS = {
+    income: { label: 'Income', color: 'var(--income)' },
+    expense: { label: 'Expense', color: 'var(--expense)' },
+    emi: { label: 'Loan EMI', color: 'var(--emi)' },
+  };
+  const entries = [
+    ...data.incomes.map((r) => ({ kind: 'income', date: r.date, title: r.description || r.source, detail: r.description ? r.source : '', category: r.category || r.source, method: '', amount: r.amount })),
+    ...data.expenses.map((r) => ({ kind: 'expense', date: r.date, title: r.description, detail: r.vendor, category: r.category, method: pretty(r.paymentMethod), amount: r.amount })),
+    ...data.emis.map((r) => ({ kind: 'emi', date: r.date, title: r.type === 'Foreclosure' ? `${r.loan} foreclosure` : `${r.loan} · EMI ${r.emiNumber ?? ''}`.trim(), detail: r.note, category: r.lender, method: r.type, amount: r.amount })),
+  ].sort((a, b) => b.date.localeCompare(a.date));
+  entries.forEach((e) => { e.haystack = `${e.title} ${e.detail} ${e.category} ${e.method}`.toLowerCase(); });
+
+  const PAGE = 150;
+  const state = { kind: 'all', query: '', showAll: false };
+  const filters = [
+    ['all', 'All', entries.length],
+    ['income', 'Income', s.counts.incomes],
+    ['expense', 'Expenses', s.counts.expenses],
+    ...(meta.includesEmi ? [['emi', 'Loan EMIs', s.counts.emis]] : []),
+  ];
+  $('#kind-filter').innerHTML = filters.map(([k, label, n]) => `<button type="button" data-kind="${k}" aria-pressed="${k === 'all'}">${label}<span class="count">${n}</span></button>`).join('');
+
+  function renderLedger() {
+    const q = state.query.trim().toLowerCase();
+    const rows = entries.filter((e) => (state.kind === 'all' || e.kind === state.kind) && (!q || e.haystack.includes(q)));
+    const visible = state.showAll ? rows : rows.slice(0, PAGE);
+    $('#ledger-body').innerHTML = visible.length
+      ? visible.map((e) => {
+          const inflow = e.kind === 'income';
+          return `<tr><td class="date">${fmtDay(e.date)}</td>` +
+            `<td><span class="entry">${esc(e.title)}</span>${e.detail ? `<span class="detail">${esc(e.detail)}</span>` : ''}</td>` +
+            `<td><span class="kind" style="--c:${KINDS[e.kind].color}">${KINDS[e.kind].label}</span></td>` +
+            `<td>${esc(e.category)}</td><td>${esc(e.method) || '<span class="detail">—</span>'}</td>` +
+            `<td class="amt ${inflow ? 'pos' : ''}">${inflow ? '+' : MINUS}${inr2.format(e.amount)}</td></tr>`;
+        }).join('')
+      : `<tr><td colspan="6" class="empty">${entries.length ? 'No entries match this filter.' : 'No entries in this period.'}</td></tr>`;
+    const net = rows.reduce((acc, e) => acc + (e.kind === 'income' ? e.amount : -e.amount), 0);
+    $('#ledger-foot').innerHTML = rows.length
+      ? `<tr><td colspan="5">${plural(rows.length, 'entry', 'entries')}${state.kind === 'all' ? ' · net' : ' · total'}</td><td class="amt ${net < 0 && state.kind === 'all' ? 'neg-total' : ''}">${state.kind === 'all' ? money(net) : inr2.format(Math.abs(net))}</td></tr>`
+      : '';
+    const more = $('#show-all');
+    more.hidden = state.showAll || rows.length <= PAGE;
+    more.textContent = `Show all ${rows.length} entries`;
+  }
+
+  $('#kind-filter').addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-kind]');
+    if (!btn) return;
+    state.kind = btn.dataset.kind;
+    state.showAll = false;
+    $('#kind-filter').querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b === btn)));
+    renderLedger();
+  });
+  $('#search').addEventListener('input', (e) => { state.query = e.target.value; state.showAll = false; renderLedger(); });
+  $('#show-all').addEventListener('click', () => { state.showAll = true; renderLedger(); });
+  renderLedger();
+})();
+</script>
