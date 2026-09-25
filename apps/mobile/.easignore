@@ -1,0 +1,14 @@
+# Keep monorepo packages for Metro; ignore heavy junk
+**/.git
+**/node_modules
+**/.expo
+**/.next
+**/dist
+**/build
+**/.turbo
+**/coverage
+**/*.md
+apps/web
+apps/api
+.claude
+.husky

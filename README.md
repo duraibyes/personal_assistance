@@ -6,9 +6,9 @@ Monorepo for web (Next.js), API (Express), and mobile (Expo) with Neon PostgreSQ
 
 | App | Path | Default URL |
 | --- | ---- | ----------- |
-| Web | `apps/web` | http://localhost:4000 |
-| API | `apps/api` | http://localhost:5000 — Swagger at `/api/docs` |
-| Mobile | `apps/mobile` | Expo (stub UI) |
+| Web | `apps/web` | http://localhost:4000 · live: https://wealthguard-web.vercel.app |
+| API | `apps/api` | http://localhost:5000 — Swagger at `/api/docs` · live: https://wealthguard-api.vercel.app |
+| Mobile | `apps/mobile` | Expo app → same live API; see `apps/mobile/README.md` for APK build |
 
 ## Setup
 

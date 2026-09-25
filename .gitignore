@@ -29,6 +29,7 @@ yarn-error.log*
 .env
 .env.development
 .env.production
+apps/mobile/.env
 
 # turbo
 .turbo
@@ -37,6 +38,11 @@ yarn-error.log*
 .expo
 android/
 ios/
+*.apk
+*.aab
 
 # gitleaks
 .gitleaks-report.json
+
+# generated finance reports (personal data)
+reports/
