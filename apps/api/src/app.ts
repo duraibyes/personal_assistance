@@ -10,6 +10,7 @@ import { incomesRouter } from './routes/incomes.routes';
 import { categoriesRouter } from './routes/categories.routes';
 import { recurringRouter } from './routes/recurring.routes';
 import { dashboardRouter } from './routes/dashboard.routes';
+import { assistantRouter } from './routes/assistant.routes';
 import { requireAuth, getJwtSecret } from './middleware/auth.middleware';
 import { setupSwagger } from './swagger';
 
@@ -53,6 +54,7 @@ app.use("/api/incomes", requireAuth, incomesRouter);
 app.use("/api/categories", requireAuth, categoriesRouter);
 app.use("/api/recurring", requireAuth, recurringRouter);
 app.use("/api/dashboard", requireAuth, dashboardRouter);
+app.use("/api/assistant", requireAuth, assistantRouter);
 
 app.use((_req: Request, res: Response) => {
   res.status(404).json({ error: "Not found" });
