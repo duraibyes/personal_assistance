@@ -1,9 +1,13 @@
+import Anthropic from '@anthropic-ai/sdk';
 import { GoogleGenAI } from '@google/genai';
-
 import OpenAI from 'openai';
+import { generateWithFallback } from './gemini';
 
-// Initialize the Gemini client. We will require GEMINI_API_KEY in the environment.
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || '' });
+
+/** Image types Claude reads directly; anything else (e.g. HEIC) goes straight to Gemini. */
+const CLAUDE_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'] as const;
+type ClaudeImageType = (typeof CLAUDE_IMAGE_TYPES)[number];
 const openai = process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null;
 const openRouter = process.env.OPENROUTER_API_KEY ? new OpenAI({ 
   apiKey: process.env.OPENROUTER_API_KEY,
@@ -47,7 +51,7 @@ export class OcrService {
     mimeType: string,
     documentType: 'LOAN' | 'EXPENSE'
   ): Promise<LoanExtractionResult | ExpenseExtractionResult> {
-    if (!process.env.GEMINI_API_KEY && !process.env.OPENAI_API_KEY && !process.env.OPENROUTER_API_KEY) {
+    if (!process.env.ANTHROPIC_API_KEY && !process.env.GEMINI_API_KEY && !process.env.OPENAI_API_KEY && !process.env.OPENROUTER_API_KEY) {
       throw new Error('No AI provider API keys configured in the environment variables.');
     }
 
@@ -66,37 +70,39 @@ export class OcrService {
       }
 
       const prompt = this.getPromptForType(documentType);
+      const hasText = !!rawText && rawText.trim().length > 100;
       let responseText = '';
       let extractionError: Error | null = null;
 
-      // ATTEMPT 1: Gemini
-      if (process.env.GEMINI_API_KEY) {
+      // ATTEMPT 1: Claude (reads photos and PDFs directly). If the key is expired, out of credit or
+      // the call fails for any reason, we fall through to Gemini.
+      if (process.env.ANTHROPIC_API_KEY) {
         try {
-          if (rawText && rawText.trim().length > 100) {
-            const response = await ai.models.generateContent({
-              model: 'gemini-2.5-flash',
-              contents: `Here is the text extracted from a financial document:\n\n${rawText}\n\n${prompt}`,
-              config: { responseMimeType: 'application/json' }
-            });
-            responseText = response.text || '';
-          } else {
-            const response = await ai.models.generateContent({
-              model: 'gemini-2.5-flash',
-              contents: [
-                prompt,
-                { inlineData: { mimeType, data: fileBuffer.toString('base64') } }
-              ],
-              config: { responseMimeType: 'application/json' }
-            });
-            responseText = response.text || '';
-          }
+          responseText = await this.extractWithClaude(rawText, hasText, fileBuffer, mimeType, prompt);
+        } catch (err) {
+          console.warn('Claude extraction failed, falling back to Gemini...', err instanceof Error ? err.message : err);
+          extractionError = err instanceof Error ? err : new Error(String(err));
+        }
+      }
+
+      // ATTEMPT 2: Gemini (tries several models, each with its own free quota)
+      if (!responseText && process.env.GEMINI_API_KEY) {
+        try {
+          const response = await generateWithFallback(ai, {
+            contents: hasText
+              ? `Here is the text extracted from a financial document:\n\n${rawText}\n\n${prompt}`
+              : [prompt, { inlineData: { mimeType, data: fileBuffer.toString('base64') } }],
+            config: { responseMimeType: 'application/json' },
+          });
+          responseText = response.text || '';
+          extractionError = null;
         } catch (err) {
           console.warn('Gemini extraction failed, attempting fallback...', err);
           extractionError = err instanceof Error ? err : new Error(String(err));
         }
       }
 
-      // ATTEMPT 2: OpenAI Fallback
+      // ATTEMPT 3: OpenAI Fallback
       if (!responseText && openai) {
         try {
           responseText = await this.extractWithOpenAI(openai, 'gpt-4o-mini', rawText, fileBuffer, mimeType, prompt, true);
@@ -107,7 +113,7 @@ export class OcrService {
         }
       }
 
-      // ATTEMPT 3: OpenRouter Fallback
+      // ATTEMPT 4: OpenRouter Fallback
       if (!responseText && openRouter) {
         try {
           responseText = await this.extractWithOpenAI(openRouter, 'google/gemini-2.5-flash', rawText, fileBuffer, mimeType, prompt, false);
@@ -122,13 +128,53 @@ export class OcrService {
         throw extractionError || new Error('All configured AI providers failed to extract data.');
       }
 
-      // Sometimes models wrap JSON in markdown fences
-      responseText = responseText.replace(/```json\n?/, '').replace(/```\n?$/, '').trim();
-      return JSON.parse(responseText);
+      // Models sometimes wrap the JSON in markdown fences or a sentence; keep just the object.
+      const start = responseText.indexOf('{');
+      const end = responseText.lastIndexOf('}');
+      return JSON.parse(start >= 0 && end > start ? responseText.slice(start, end + 1) : responseText);
     } catch (error) {
       console.error('Error in OCR extraction:', error);
       throw new Error(`Failed to extract structured data: ${error instanceof Error ? error.message : String(error)}`);
     }
+  }
+
+  private static async extractWithClaude(
+    rawText: string,
+    hasText: boolean,
+    fileBuffer: Buffer,
+    mimeType: string,
+    prompt: string
+  ): Promise<string> {
+    const instruction = `${prompt}\nReturn only the JSON object, with no other text.`;
+    let content: Anthropic.ContentBlockParam[];
+
+    if (hasText) {
+      content = [{ type: 'text', text: `Here is the text extracted from a financial document:\n\n${rawText}\n\n${instruction}` }];
+    } else if (mimeType === 'application/pdf') {
+      content = [
+        { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: fileBuffer.toString('base64') } },
+        { type: 'text', text: instruction },
+      ];
+    } else if ((CLAUDE_IMAGE_TYPES as readonly string[]).includes(mimeType)) {
+      content = [
+        { type: 'image', source: { type: 'base64', media_type: mimeType as ClaudeImageType, data: fileBuffer.toString('base64') } },
+        { type: 'text', text: instruction },
+      ];
+    } else {
+      throw new Error(`Claude can't read ${mimeType} files`);
+    }
+
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, maxRetries: 1, timeout: 60_000 });
+    const response = await client.messages.create({
+      model: process.env.ANTHROPIC_MODEL || 'claude-opus-5',
+      max_tokens: 4000,
+      output_config: { effort: 'low' },
+      messages: [{ role: 'user', content }],
+    });
+    if (response.stop_reason === 'refusal') throw new Error('Claude declined to read this document');
+    const text = response.content.flatMap((b) => (b.type === 'text' ? [b.text] : [])).join('').trim();
+    if (!text) throw new Error('Claude returned no text');
+    return text;
   }
 
   private static async extractWithOpenAI(
