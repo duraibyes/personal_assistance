@@ -47,15 +47,27 @@ assistantRouter.post('/transcribe', upload.single('audio'), async (req: Request,
   }
 });
 
-const askSchema = z.object({
-  // Recent chat, oldest first, ending with the user's new question. The server is stateless.
-  messages: z
-    .array(z.object({ role: z.enum(['user', 'assistant']), content: z.string().trim().min(1).max(4000) }))
-    .min(1)
-    .max(20)
-    .refine((m) => m[m.length - 1].role === 'user', 'The last message must be from the user'),
-  language: z.enum(['en', 'ta']).optional(),
-});
+/** Stored turns sent back to the model as context for follow-up questions. */
+const CONTEXT_TURNS = 12;
+const HISTORY_LIMIT = 100;
+
+const askSchema = z
+  .object({
+    /** The new question. History comes from the server, so the chat survives app restarts. */
+    question: z.string().trim().min(1).max(4000).optional(),
+    /** Older app versions (1.4.0) send the recent chat instead; still accepted. */
+    messages: z
+      .array(z.object({ role: z.enum(['user', 'assistant']), content: z.string().trim().min(1).max(4000) }))
+      .min(1)
+      .max(20)
+      .optional(),
+    language: z.enum(['en', 'ta']).optional(),
+    source: z.enum(['text', 'voice']).optional(),
+  })
+  .refine((b) => b.question || b.messages?.some((m) => m.role === 'user'), 'A question is required');
+
+type StoredMessage = { id: string; role: string; content: string; source: string; createdAt: Date };
+const toClient = (m: StoredMessage) => ({ id: m.id, role: m.role, content: m.content, source: m.source, createdAt: m.createdAt });
 
 /**
  * @openapi
@@ -63,6 +75,7 @@ const askSchema = z.object({
  *   post:
  *     tags: [Assistant]
  *     summary: Ask Professor a question about your own finances (answered from your WealthGuard data)
+ *     description: The question and answer are saved to the user's Professor history.
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -71,17 +84,12 @@ const askSchema = z.object({
  *           schema:
  *             type: object
  *             properties:
- *               messages:
- *                 type: array
- *                 items:
- *                   type: object
- *                   properties:
- *                     role: { type: string, enum: [user, assistant] }
- *                     content: { type: string }
+ *               question: { type: string }
  *               language: { type: string, enum: [en, ta] }
+ *               source: { type: string, enum: [text, voice] }
  *     responses:
  *       200:
- *         description: "{ answer, provider }"
+ *         description: "{ answer, provider, messages: [question, answer] }"
  */
 assistantRouter.post('/ask', async (req: Request, res: Response) => {
   const parsed = askSchema.safeParse(req.body);
@@ -89,14 +97,88 @@ assistantRouter.post('/ask', async (req: Request, res: Response) => {
 
   try {
     const userId = req.user!.id;
+    const body = parsed.data;
     const user = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
-    // Drop leading assistant turns (e.g. the welcome bubble): conversations must start with the user.
+
     // Built explicitly: Vercel's compile isn't strict, where zod types every field as optional.
-    const turns: ChatTurn[] = parsed.data.messages.map((m) => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: String(m.content ?? '') }));
-    const history = turns.slice(turns.findIndex((m) => m.role === 'user'));
-    res.json(await ProfessorService.ask(userId, user?.name, history, parsed.data.language));
+    let history: ChatTurn[];
+    if (body.question) {
+      const recent = await prisma.professorMessage.findMany({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+        take: CONTEXT_TURNS,
+        select: { role: true, content: true },
+      });
+      history = [
+        ...recent.reverse().map((m): ChatTurn => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: m.content })),
+        { role: 'user', content: body.question },
+      ];
+    } else {
+      history = (body.messages ?? []).map((m): ChatTurn => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: String(m.content ?? '') }));
+    }
+    // Conversations must start with the user (drops e.g. an old answer cut off at the context window).
+    history = history.slice(history.findIndex((m) => m.role === 'user'));
+    const question = history[history.length - 1].content;
+
+    const result = await ProfessorService.ask(userId, user?.name, history, body.language);
+
+    // Saved only once answered, so history never holds a question without its reply.
+    const now = Date.now();
+    const saved = await prisma.$transaction([
+      prisma.professorMessage.create({
+        data: { userId, role: 'user', content: question, source: body.source ?? 'text', createdAt: new Date(now) },
+      }),
+      prisma.professorMessage.create({
+        data: { userId, role: 'assistant', content: result.answer, createdAt: new Date(now + 1) },
+      }),
+    ]);
+    res.json({ ...result, messages: saved.map(toClient) });
   } catch (error) {
     console.error('Professor ask error:', error);
     res.status(503).json({ error: "Professor couldn't answer right now. Please try again in a moment." });
+  }
+});
+
+/**
+ * @openapi
+ * /api/assistant/history:
+ *   get:
+ *     tags: [Assistant]
+ *     summary: The user's saved Professor chat, oldest first (most recent 100 messages)
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: "{ messages: [{ id, role, content, source, createdAt }] }"
+ *   delete:
+ *     tags: [Assistant]
+ *     summary: Clear the user's Professor chat history
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       204:
+ *         description: Cleared
+ */
+assistantRouter.get('/history', async (req: Request, res: Response) => {
+  try {
+    const rows = await prisma.professorMessage.findMany({
+      where: { userId: req.user!.id },
+      orderBy: { createdAt: 'desc' },
+      take: HISTORY_LIMIT,
+    });
+    res.json({ messages: rows.reverse().map(toClient) });
+  } catch (error) {
+    console.error('Professor history error:', error);
+    res.status(500).json({ error: 'Could not load your chat history.' });
+  }
+});
+
+assistantRouter.delete('/history', async (req: Request, res: Response) => {
+  try {
+    await prisma.professorMessage.deleteMany({ where: { userId: req.user!.id } });
+    res.status(204).end();
+  } catch (error) {
+    console.error('Professor history clear error:', error);
+    res.status(500).json({ error: 'Could not clear your chat history.' });
   }
 });

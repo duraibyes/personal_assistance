@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
 import { GoogleGenAI, type Content } from '@google/genai';
 import { TOOLS, runTool, istDay } from './tools';
+import { generateWithFallback } from '../gemini';
 
 export type ChatTurn = { role: 'user' | 'assistant'; content: string };
 export type AskResult = { answer: string; provider: string };
@@ -47,7 +48,7 @@ You are "Professor", the financial assistant inside the WealthGuard app. You hel
 - Prefer the summarize_* tools for totals and breakdowns. If you calculate anything yourself (percentage change, months left), use only fetched numbers and show the calculation briefly.
 - Category names are free text; if a word like "petrol" or "food" returns nothing, check list_categories and retry with the real name.
 - Never present a past date as an upcoming EMI. Use next_emi_date as given (it is null when nothing upcoming is known).
-- When any loan in a result has data_issues, after answering add a short "Needs updating" note naming each such loan (name, lender, EMI amount) and its issue in plain words, and suggest fixing it on the Loans screen. Mention overdue EMIs clearly.
+- When a loan your answer is about has data_issues, add a short "Needs updating" note after the answer naming that loan (name, lender, EMI amount) and its issue in plain words, and suggest fixing it on the Loans screen. Mention overdue EMIs clearly. Leave out loans the question wasn't about, and don't repeat a note you already gave earlier in this conversation; if the user asks "which loans need updating", list them all.
 - For loan end dates, say whether the date is recorded, from the EMI schedule, or projected.
 - "How much do I owe / what does it take to close" means estimated_payoff_now, not remaining_emi_payments_total (that includes future interest). Always call it an estimate: the lender's foreclosure quote adds charges (often 2–5% + GST) and some loans have lock-in periods.
 
@@ -171,11 +172,10 @@ const geminiProvider: Provider = {
     const config = {
       systemInstruction: system,
       tools: [{ functionDeclarations: TOOLS.map((t) => ({ name: t.name, description: t.description, parametersJsonSchema: t.parameters })) }],
-      abortSignal: AbortSignal.timeout(PROVIDER_TIMEOUT_MS),
     };
 
     for (let step = 0; step < MAX_STEPS; step++) {
-      const response = await ai.models.generateContent({ model: process.env.GEMINI_MODEL || 'gemini-2.5-flash', contents, config });
+      const response = await generateWithFallback(ai, { contents, config });
       const calls = response.functionCalls ?? [];
       if (!calls.length) {
         const text = (response.text ?? '').trim();

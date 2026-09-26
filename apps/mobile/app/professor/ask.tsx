@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Animated,
   FlatList,
   KeyboardAvoidingView,
@@ -21,7 +22,16 @@ import { GradientBackground } from '../../components/ui/Screen';
 import { Logo } from '../../components/ui/Bits';
 import { BRAND_GRADIENT, COLORS } from '../../lib/config';
 import { pickDocument } from '../../lib/documents';
-import { askProfessor, ChatTurn, MAX_RECORDING_MS, RECORDING_OPTIONS, transcribe, Transcription } from '../../lib/assistant';
+import {
+  askProfessor,
+  clearProfessorHistory,
+  getProfessorHistory,
+  MAX_RECORDING_MS,
+  ProfessorMessage,
+  RECORDING_OPTIONS,
+  transcribe,
+  Transcription,
+} from '../../lib/assistant';
 
 type Voice = {
   uri: string;
@@ -40,11 +50,12 @@ type Message = {
   /** Professor replies: 'thinking' while the API works, 'error' with a retry. */
   status?: 'thinking' | 'error';
   /** For an errored reply: the question to resend. */
-  retry?: { history: ChatTurn[]; language?: 'en' | 'ta' };
+  retry?: Question;
+  /** A question loaded from history that was originally spoken. */
+  spoken?: boolean;
 };
 
-/** How many recent turns go to the API for follow-up context. */
-const HISTORY_TURNS = 12;
+type Question = { text: string; language?: 'en' | 'ta'; source?: 'text' | 'voice' };
 
 const LANGUAGE_LABEL: Record<Transcription['language'], string> = {
   ta: 'Spoken in Tamil',
@@ -65,13 +76,12 @@ const WELCOME: Message = {
   text: 'Vanakkam! Ask me anything about your money: spending, income, loans, EMIs, recurring bills or vehicles. I answer from your WealthGuard data. Type, or tap the mic and speak in Tamil or English.',
 };
 
-/** The text a message contributes to the conversation sent to Professor. */
-function turnOf(m: Message): ChatTurn | null {
-  if (m.id === 'welcome' || m.status) return null;
-  if (m.from === 'professor') return m.text ? { role: 'assistant', content: m.text } : null;
-  const content = m.text || (m.voice?.status === 'done' ? m.voice.result?.english || m.voice.result?.original : '');
-  return content ? { role: 'user', content } : null;
-}
+const fromSaved = (m: ProfessorMessage): Message => ({
+  id: m.id,
+  from: m.role === 'user' ? 'me' : 'professor',
+  text: m.content,
+  spoken: m.source === 'voice',
+});
 
 export default function ProfessorScreen() {
   const router = useRouter();
@@ -85,6 +95,7 @@ export default function ProfessorScreen() {
     setMessages(messagesRef.current);
   };
   const [text, setText] = useState('');
+  const [historyState, setHistoryState] = useState<'loading' | 'ready' | 'error'>('loading');
   const [attachment, setAttachment] = useState<DocumentPickerAsset | null>(null);
 
   const recordingRef = useRef<Audio.Recording | null>(null);
@@ -108,6 +119,41 @@ export default function ProfessorScreen() {
     return () => loop.stop();
   }, [recording, pulse]);
 
+  const loadHistory = async () => {
+    setHistoryState('loading');
+    try {
+      const { messages: saved } = await getProfessorHistory();
+      // Keep anything asked while history was loading after the saved chat.
+      commit((prev) => [WELCOME, ...saved.map(fromSaved), ...prev.filter((m) => m.id !== WELCOME.id)]);
+      setHistoryState('ready');
+      requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated: false }));
+    } catch {
+      setHistoryState('error');
+    }
+  };
+
+  useEffect(() => {
+    loadHistory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const confirmClear = () =>
+    Alert.alert('Clear chat history?', 'This deletes your saved conversation with Professor.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Clear',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await clearProfessorHistory();
+            commit(() => [WELCOME]);
+          } catch (err) {
+            Alert.alert('Could not clear', err instanceof Error ? err.message : 'Please try again.');
+          }
+        },
+      },
+    ]);
+
   // Never leave the microphone open if the user backs out mid-recording.
   useEffect(() => () => void recordingRef.current?.stopAndUnloadAsync().catch(() => undefined), []);
 
@@ -118,26 +164,22 @@ export default function ProfessorScreen() {
   const patch = (id: string, changes: Partial<Message>) =>
     commit((prev) => prev.map((m) => (m.id === id ? { ...m, ...changes } : m)));
 
-  /** Sends the conversation so far (ending with the user's latest turn) and fills in Professor's reply. */
-  const ask = async (history: ChatTurn[], language?: 'en' | 'ta', replyId = uid()) => {
-    if (!history.length) return;
+  /** Sends one question (the server adds the saved chat as context and stores both sides) and fills in the reply. */
+  const ask = async (question: Question, replyId = uid()) => {
     if (messagesRef.current.some((m) => m.id === replyId)) patch(replyId, { status: 'thinking', text: undefined, retry: undefined });
     else push({ id: replyId, from: 'professor', status: 'thinking' });
     try {
-      const { answer } = await askProfessor(history, language);
+      const { answer } = await askProfessor(question.text, { language: question.language, source: question.source });
       patch(replyId, { status: undefined, text: answer, retry: undefined });
     } catch (err) {
       patch(replyId, {
         status: 'error',
         text: err instanceof Error ? err.message : 'Professor could not answer right now.',
-        retry: { history, language },
+        retry: question,
       });
     }
     requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated: true }));
   };
-
-  const recentHistory = () =>
-    messagesRef.current.map(turnOf).filter((t): t is ChatTurn => !!t).slice(-HISTORY_TURNS);
   const patchVoice = (id: string, voice: Partial<Voice>) =>
     commit((prev) => prev.map((m) => (m.id === id && m.voice ? { ...m, voice: { ...m.voice, ...voice } } : m)));
 
@@ -152,7 +194,7 @@ export default function ProfessorScreen() {
     });
     setText('');
     setAttachment(null);
-    if (question) ask(recentHistory());
+    if (question) ask({ text: question });
     else
       push({
         id: uid(),
@@ -225,7 +267,7 @@ export default function ProfessorScreen() {
       patchVoice(id, { status: 'done', result });
       // Answer the spoken question straight away, in Tamil if that's how it was asked.
       const spoken = result.english || result.original;
-      if (spoken) ask(recentHistory(), result.language === 'ta' ? 'ta' : 'en');
+      if (spoken) ask({ text: spoken, language: result.language === 'ta' ? 'ta' : 'en', source: 'voice' });
     } catch (err) {
       patchVoice(id, { status: 'error', error: err instanceof Error ? err.message : 'Transcription failed' });
     }
@@ -244,6 +286,11 @@ export default function ProfessorScreen() {
             <Text style={styles.title}>Ask Professor</Text>
             <Text style={styles.subtitle}>Answers from your WealthGuard data</Text>
           </View>
+          {messages.length > 1 ? (
+            <Pressable onPress={confirmClear} hitSlop={10} style={styles.back} accessibilityLabel="Clear chat history">
+              <Ionicons name="trash-outline" size={20} color={COLORS.muted} />
+            </Pressable>
+          ) : null}
         </View>
 
         <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -253,13 +300,26 @@ export default function ProfessorScreen() {
             keyExtractor={(m) => m.id}
             contentContainerStyle={styles.list}
             onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: true })}
+            ListHeaderComponent={
+              historyState === 'loading' ? (
+                <View style={[styles.fileRow, styles.historyNote]}>
+                  <ActivityIndicator size="small" color={COLORS.muted} />
+                  <Text style={styles.subtitle}>Loading your chat…</Text>
+                </View>
+              ) : historyState === 'error' ? (
+                <Pressable onPress={loadHistory} style={[styles.fileRow, styles.historyNote]}>
+                  <Ionicons name="refresh" size={14} color={COLORS.muted} />
+                  <Text style={styles.subtitle}>Couldn't load your earlier chat. Tap to retry.</Text>
+                </Pressable>
+              ) : null
+            }
             renderItem={({ item }) => (
               <Bubble
                 message={item}
                 onRetry={() =>
                   item.voice
                     ? runTranscription(item.id, item.voice.uri)
-                    : item.retry && ask(item.retry.history, item.retry.language, item.id)
+                    : item.retry && ask(item.retry, item.id)
                 }
                 onUseText={(value) => setText(value)}
               />
@@ -334,6 +394,12 @@ function Bubble({ message, onRetry, onUseText }: { message: Message; onRetry: ()
   return (
     <View style={[styles.bubbleRow, mine ? styles.rowMine : styles.rowTheirs]}>
       <View style={[styles.bubble, mine ? styles.bubbleMine : styles.bubbleTheirs]}>
+        {message.spoken ? (
+          <View style={styles.voiceHead}>
+            <Ionicons name="mic" size={12} color={COLORS.text} />
+            <Text style={styles.voiceMeta}>Voice</Text>
+          </View>
+        ) : null}
         {message.file ? (
           <View style={styles.fileRow}>
             <Ionicons name="document-text-outline" size={18} color={COLORS.text} />
@@ -445,6 +511,7 @@ const styles = StyleSheet.create({
   title: { color: COLORS.text, fontSize: 18, fontWeight: '800' },
   subtitle: { color: COLORS.muted, fontSize: 12 },
   list: { padding: 16, gap: 10 },
+  historyNote: { alignSelf: 'center', paddingVertical: 4 },
   bubbleRow: { flexDirection: 'row' },
   rowMine: { justifyContent: 'flex-end' },
   rowTheirs: { justifyContent: 'flex-start' },

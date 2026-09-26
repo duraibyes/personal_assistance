@@ -46,9 +46,31 @@ export function transcribe(uri: string) {
   return api<Transcription>('/assistant/transcribe', { method: 'POST', formData });
 }
 
-export type ChatTurn = { role: 'user' | 'assistant'; content: string };
+export type ProfessorMessage = {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  /** "voice" when the question was spoken */
+  source: 'text' | 'voice';
+  createdAt: string;
+};
 
-/** Ask Professor about the user's own finances; the API answers from their WealthGuard data. */
-export function askProfessor(messages: ChatTurn[], language?: 'en' | 'ta') {
-  return api<{ answer: string; provider: string }>('/assistant/ask', { method: 'POST', body: { messages, language } });
+/**
+ * Ask Professor about the user's own finances. The server answers from their WealthGuard data,
+ * adds the saved chat as context, and stores both the question and the answer.
+ */
+export function askProfessor(question: string, options: { language?: 'en' | 'ta'; source?: 'text' | 'voice' } = {}) {
+  return api<{ answer: string; provider: string; messages: ProfessorMessage[] }>('/assistant/ask', {
+    method: 'POST',
+    body: { question, ...options },
+  });
+}
+
+/** The saved chat, oldest first (most recent 100 messages). */
+export function getProfessorHistory() {
+  return api<{ messages: ProfessorMessage[] }>('/assistant/history');
+}
+
+export function clearProfessorHistory() {
+  return api<void>('/assistant/history', { method: 'DELETE' });
 }

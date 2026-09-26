@@ -30,7 +30,7 @@ Scan the QR code with **Expo Go** on your phone (same Wi‑Fi for local; for liv
 - Income: search + category/date filters, add/edit, delete
 - Recurring bills and categories: add, edit, activate/pause, delete
 - Native date pickers, confirm dialogs, inline field validation
-- Professor: Ask (questions about your loans, spending and income, answered from your data; voice in English or Tamil) and Kids (12 learning sections; Bedtime stories with slow narration, soft music, English/Tamil)
+- Professor: Ask (questions about your loans, spending and income, answered from your data; voice in English or Tamil; chat history saved; Ask button in the tab bar) and Kids (12 learning sections; Bedtime stories with slow narration, soft music, English/Tamil)
 - Theme taken from the WealthGuard logo (navy → teal background, blue → green accents)
 
 ## Build installable APK

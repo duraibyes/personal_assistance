@@ -26,6 +26,7 @@ model User {
   expenseCategories ExpenseCategory[]
   recurringExpenses RecurringExpense[]
   trustedDevices    TrustedDevice[]
+  professorMessages ProfessorMessage[]
 }
 
 /// A phone the user has signed in on. Lets the mobile app offer "Continue as …" after a reinstall.
@@ -41,6 +42,20 @@ model TrustedDevice {
 
   @@unique([userId, deviceHash])
   @@index([deviceHash])
+}
+
+/// Professor → Ask chat history, so a conversation is still there when the user comes back.
+model ProfessorMessage {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      String // user, assistant
+  content   String
+  /// "voice" when the question was spoken (content is the English transcript)
+  source    String   @default("text")
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
 }
 
 model ExpenseCategory {

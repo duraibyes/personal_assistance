@@ -1,6 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
 import Anthropic from '@anthropic-ai/sdk';
 import OpenAI, { toFile } from 'openai';
+import { generateWithFallback } from './gemini';
 
 export interface TranscriptionResult {
   /** Language the speaker actually used. "mixed" covers Tamil–English code-switching (Tanglish). */
@@ -48,10 +49,9 @@ function parseResult(raw: string): TranscriptionResult {
 /** Gemini hears the audio directly and returns all four fields in one call. */
 async function geminiAudio(audio: Buffer, mimeType: string) {
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-  const response = await ai.models.generateContent({
-    model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+  const response = await generateWithFallback(ai, {
     contents: [AUDIO_PROMPT, { inlineData: { mimeType, data: audio.toString('base64') } }],
-    config: { responseMimeType: 'application/json', abortSignal: AbortSignal.timeout(TIMEOUT_MS) },
+    config: { responseMimeType: 'application/json' },
   });
   return parseResult(response.text || '{}');
 }
