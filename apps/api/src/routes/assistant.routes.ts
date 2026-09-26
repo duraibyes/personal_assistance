@@ -3,7 +3,7 @@ import multer from 'multer';
 import { z } from 'zod';
 import { prisma } from '@repo/database';
 import { SpeechService } from '../services/speech.service';
-import { ProfessorService } from '../services/professor/professor.service';
+import { ProfessorService, type ChatTurn } from '../services/professor/professor.service';
 
 export const assistantRouter: Router = Router();
 
@@ -91,7 +91,9 @@ assistantRouter.post('/ask', async (req: Request, res: Response) => {
     const userId = req.user!.id;
     const user = await prisma.user.findUnique({ where: { id: userId }, select: { name: true } });
     // Drop leading assistant turns (e.g. the welcome bubble): conversations must start with the user.
-    const history = parsed.data.messages.slice(parsed.data.messages.findIndex((m) => m.role === 'user'));
+    // Built explicitly: Vercel's compile isn't strict, where zod types every field as optional.
+    const turns: ChatTurn[] = parsed.data.messages.map((m) => ({ role: m.role === 'assistant' ? 'assistant' : 'user', content: String(m.content ?? '') }));
+    const history = turns.slice(turns.findIndex((m) => m.role === 'user'));
     res.json(await ProfessorService.ask(userId, user?.name, history, parsed.data.language));
   } catch (error) {
     console.error('Professor ask error:', error);
