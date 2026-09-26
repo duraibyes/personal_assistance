@@ -21,7 +21,7 @@ import { GradientBackground } from '../../components/ui/Screen';
 import { Logo } from '../../components/ui/Bits';
 import { BRAND_GRADIENT, COLORS } from '../../lib/config';
 import { pickDocument } from '../../lib/documents';
-import { MAX_RECORDING_MS, RECORDING_OPTIONS, transcribe, Transcription } from '../../lib/assistant';
+import { askProfessor, ChatTurn, MAX_RECORDING_MS, RECORDING_OPTIONS, transcribe, Transcription } from '../../lib/assistant';
 
 type Voice = {
   uri: string;
@@ -37,7 +37,14 @@ type Message = {
   text?: string;
   file?: { name: string; size?: number | null };
   voice?: Voice;
+  /** Professor replies: 'thinking' while the API works, 'error' with a retry. */
+  status?: 'thinking' | 'error';
+  /** For an errored reply: the question to resend. */
+  retry?: { history: ChatTurn[]; language?: 'en' | 'ta' };
 };
+
+/** How many recent turns go to the API for follow-up context. */
+const HISTORY_TURNS = 12;
 
 const LANGUAGE_LABEL: Record<Transcription['language'], string> = {
   ta: 'Spoken in Tamil',
@@ -55,13 +62,28 @@ const clock = (ms: number) => {
 const WELCOME: Message = {
   id: 'welcome',
   from: 'professor',
-  text: 'Vanakkam! Tap the mic and speak in Tamil or English. I will write it out in English first, and in Tamil on the next tab.',
+  text: 'Vanakkam! Ask me anything about your money: spending, income, loans, EMIs, recurring bills or vehicles. I answer from your WealthGuard data. Type, or tap the mic and speak in Tamil or English.',
 };
+
+/** The text a message contributes to the conversation sent to Professor. */
+function turnOf(m: Message): ChatTurn | null {
+  if (m.id === 'welcome' || m.status) return null;
+  if (m.from === 'professor') return m.text ? { role: 'assistant', content: m.text } : null;
+  const content = m.text || (m.voice?.status === 'done' ? m.voice.result?.english || m.voice.result?.original : '');
+  return content ? { role: 'user', content } : null;
+}
 
 export default function ProfessorScreen() {
   const router = useRouter();
   const listRef = useRef<FlatList<Message>>(null);
   const [messages, setMessages] = useState<Message[]>([WELCOME]);
+  // Latest messages for async callbacks (transcription finishing) that would otherwise see a stale list.
+  // Every change goes through commit() so the ref and state never drift apart.
+  const messagesRef = useRef<Message[]>(messages);
+  const commit = (next: (prev: Message[]) => Message[]) => {
+    messagesRef.current = next(messagesRef.current);
+    setMessages(messagesRef.current);
+  };
   const [text, setText] = useState('');
   const [attachment, setAttachment] = useState<DocumentPickerAsset | null>(null);
 
@@ -90,22 +112,53 @@ export default function ProfessorScreen() {
   useEffect(() => () => void recordingRef.current?.stopAndUnloadAsync().catch(() => undefined), []);
 
   const push = (msg: Message) => {
-    setMessages((prev) => [...prev, msg]);
+    commit((prev) => [...prev, msg]);
     requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated: true }));
   };
+  const patch = (id: string, changes: Partial<Message>) =>
+    commit((prev) => prev.map((m) => (m.id === id ? { ...m, ...changes } : m)));
+
+  /** Sends the conversation so far (ending with the user's latest turn) and fills in Professor's reply. */
+  const ask = async (history: ChatTurn[], language?: 'en' | 'ta', replyId = uid()) => {
+    if (!history.length) return;
+    if (messagesRef.current.some((m) => m.id === replyId)) patch(replyId, { status: 'thinking', text: undefined, retry: undefined });
+    else push({ id: replyId, from: 'professor', status: 'thinking' });
+    try {
+      const { answer } = await askProfessor(history, language);
+      patch(replyId, { status: undefined, text: answer, retry: undefined });
+    } catch (err) {
+      patch(replyId, {
+        status: 'error',
+        text: err instanceof Error ? err.message : 'Professor could not answer right now.',
+        retry: { history, language },
+      });
+    }
+    requestAnimationFrame(() => listRef.current?.scrollToEnd({ animated: true }));
+  };
+
+  const recentHistory = () =>
+    messagesRef.current.map(turnOf).filter((t): t is ChatTurn => !!t).slice(-HISTORY_TURNS);
   const patchVoice = (id: string, voice: Partial<Voice>) =>
-    setMessages((prev) => prev.map((m) => (m.id === id && m.voice ? { ...m, voice: { ...m.voice, ...voice } } : m)));
+    commit((prev) => prev.map((m) => (m.id === id && m.voice ? { ...m, voice: { ...m.voice, ...voice } } : m)));
 
   const sendText = () => {
     if (!canSend) return;
+    const question = text.trim();
     push({
       id: uid(),
       from: 'me',
-      text: text.trim() || undefined,
+      text: question || undefined,
       file: attachment ? { name: attachment.name, size: attachment.size } : undefined,
     });
     setText('');
     setAttachment(null);
+    if (question) ask(recentHistory());
+    else
+      push({
+        id: uid(),
+        from: 'professor',
+        text: "I can't read attached files here yet. To add a bill or loan document, use the Documents screen. You can ask me about the data it creates.",
+      });
   };
 
   const attach = async () => {
@@ -170,6 +223,9 @@ export default function ProfessorScreen() {
     try {
       const result = await transcribe(uri);
       patchVoice(id, { status: 'done', result });
+      // Answer the spoken question straight away, in Tamil if that's how it was asked.
+      const spoken = result.english || result.original;
+      if (spoken) ask(recentHistory(), result.language === 'ta' ? 'ta' : 'en');
     } catch (err) {
       patchVoice(id, { status: 'error', error: err instanceof Error ? err.message : 'Transcription failed' });
     }
@@ -186,7 +242,7 @@ export default function ProfessorScreen() {
           <Logo size={34} />
           <View style={{ flex: 1 }}>
             <Text style={styles.title}>Ask Professor</Text>
-            <Text style={styles.subtitle}>Speak in Tamil or English</Text>
+            <Text style={styles.subtitle}>Answers from your WealthGuard data</Text>
           </View>
         </View>
 
@@ -200,7 +256,11 @@ export default function ProfessorScreen() {
             renderItem={({ item }) => (
               <Bubble
                 message={item}
-                onRetry={() => item.voice && runTranscription(item.id, item.voice.uri)}
+                onRetry={() =>
+                  item.voice
+                    ? runTranscription(item.id, item.voice.uri)
+                    : item.retry && ask(item.retry.history, item.retry.language, item.id)
+                }
                 onUseText={(value) => setText(value)}
               />
             )}
@@ -280,7 +340,23 @@ function Bubble({ message, onRetry, onUseText }: { message: Message; onRetry: ()
             <Text style={styles.fileName} numberOfLines={1}>{message.file.name}</Text>
           </View>
         ) : null}
-        {message.text ? <Text style={styles.text}>{message.text}</Text> : null}
+        {message.status === 'thinking' ? (
+          <View style={styles.fileRow}>
+            <ActivityIndicator size="small" color={COLORS.text} />
+            <Text style={styles.voiceMeta}>Checking your data…</Text>
+          </View>
+        ) : null}
+        {message.status === 'error' ? (
+          <>
+            <Text style={styles.voiceError}>{message.text}</Text>
+            <Pressable onPress={onRetry} style={styles.retry}>
+              <Ionicons name="refresh" size={14} color={COLORS.text} />
+              <Text style={styles.retryText}>Try again</Text>
+            </Pressable>
+          </>
+        ) : message.text ? (
+          <Text style={styles.text} selectable={!mine}>{message.text}</Text>
+        ) : null}
         {message.voice ? <VoiceBody voice={message.voice} onRetry={onRetry} onUseText={onUseText} /> : null}
       </View>
     </View>
