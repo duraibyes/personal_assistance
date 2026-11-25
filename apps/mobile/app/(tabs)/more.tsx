@@ -12,6 +12,7 @@ import { useAuth } from '../../lib/auth';
 import { COLORS, WEB_URL } from '../../lib/config';
 
 const LINKS: { icon: keyof typeof Ionicons.glyphMap; label: string; hint: string; href: string; color: string }[] = [
+  { icon: 'folder-open-outline', label: 'Documents', hint: 'Bills, fee receipts, Aadhaar, PAN — all in one place', href: '/documents', color: COLORS.gold },
   { icon: 'school-outline', label: 'Professor', hint: 'Talk in Tamil or English — see it in both', href: '/professor', color: COLORS.teal },
   { icon: 'repeat-outline', label: 'Recurring bills', hint: 'Rent, subscriptions, reminders', href: '/recurring', color: '#a78bfa' },
   { icon: 'pricetags-outline', label: 'Categories', hint: 'Expense & income categories', href: '/categories', color: COLORS.gold },

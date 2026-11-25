@@ -75,4 +75,20 @@ export class StorageService {
       stream.end(fileBuffer);
     });
   }
+
+  /**
+   * Deletes a file previously returned by uploadFile, given its secure URL
+   * (https://res.cloudinary.com/{cloud}/{resourceType}/upload/v123/{publicId}.{ext}).
+   * Best effort: resolves false when the URL is not a Cloudinary upload URL.
+   */
+  static async deleteByUrl(url: string): Promise<boolean> {
+    const match = url.match(/\/(image|video|raw)\/upload\/(?:v\d+\/)?(.+)$/);
+    if (!match) return false;
+    ensureConfigured();
+    const resourceType = match[1] as 'image' | 'video' | 'raw';
+    // Raw files keep their extension in the public id; images and videos do not.
+    const publicId = decodeURIComponent(resourceType === 'raw' ? match[2] : match[2].replace(/\.[^/.]+$/, ''));
+    const result = await cloudinary.uploader.destroy(publicId, { resource_type: resourceType, invalidate: true });
+    return result?.result === 'ok';
+  }
 }

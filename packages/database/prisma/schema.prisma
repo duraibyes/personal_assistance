@@ -300,6 +300,15 @@ model Document {
   documentType     String
   processingStatus String @default("UPLOADED") // UPLOADED, PROCESSING, EXTRACTED, NEEDS_REVIEW, VERIFIED, FAILED
 
+  // Document vault: proofs and personal records the user keeps in one place
+  // (Aadhaar, PAN, school certificates, fee / service / bill receipts).
+  inVault    Boolean   @default(false)
+  title      String?
+  category   String? // see VAULT_CATEGORIES in apps/api/src/routes/documents.routes.ts
+  amount     Float?
+  recordDate DateTime? // when it was paid / issued
+  notes      String?
+
   loanId String?
   loan   Loan?   @relation("LoanAttachments", fields: [loanId], references: [id])
 
@@ -308,6 +317,8 @@ model Document {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([userId, inVault])
 }
 
 model DocumentExtraction {
