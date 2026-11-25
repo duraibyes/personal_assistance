@@ -3,6 +3,7 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import * as Updates from 'expo-updates';
 import { AuthProvider, useAuth } from '../lib/auth';
 import { COLORS } from '../lib/config';
 
@@ -29,7 +30,28 @@ function AuthGate({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+/**
+ * Over-the-air updates: on launch, download any new JS published with `eas update`
+ * (done by .github/workflows/mobile-update.yml on push to main) and restart into it.
+ */
+function useOtaUpdate() {
+  useEffect(() => {
+    if (__DEV__ || !Updates.isEnabled) return;
+    (async () => {
+      try {
+        const check = await Updates.checkForUpdateAsync();
+        if (!check.isAvailable) return;
+        await Updates.fetchUpdateAsync();
+        await Updates.reloadAsync();
+      } catch {
+        // Offline or update server unreachable: keep running the current version.
+      }
+    })();
+  }, []);
+}
+
 export default function RootLayout() {
+  useOtaUpdate();
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AuthProvider>

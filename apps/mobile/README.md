@@ -46,7 +46,17 @@ pnpm build:apk
 
 3. When the cloud build finishes, download the `.apk` from the Expo dashboard and install on your Android phone (enable “Install unknown apps” if prompted).
 
-Updates: bump `expo.version` and `expo.android.versionCode` in `app.json`, build again, and install the new APK
-over the old one — same package and signing key, so it upgrades in place and you stay signed in.
+## Updates
+
+**Code-only changes (screens, forms, text, logic) — no APK needed.** Push to `main`; the
+`Mobile OTA update` GitHub Action runs `eas update --channel preview`, and installed apps download
+the new version the next time they are opened. Needs the `EXPO_TOKEN` repository secret
+(expo.dev → Account settings → Access tokens). Keep `expo.version` the same for these.
+
+**Native changes — new APK needed.** Adding a native module (e.g. camera), changing permissions or
+native config in `app.json`: bump `expo.version` and `expo.android.versionCode` in `app.json`, run
+`pnpm build:apk`, and install the new APK over the old one — same package and signing key, so it
+upgrades in place and you stay signed in. Over-the-air updates only reach APKs with the same
+`expo.version` (runtime version policy `appVersion`).
 
 `eas.json` profile `preview` produces an **APK** (not Play Store AAB).

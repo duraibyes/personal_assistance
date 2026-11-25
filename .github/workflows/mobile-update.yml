@@ -1,0 +1,61 @@
+# Publishes the mobile app's JavaScript as an over-the-air update (EAS Update)
+# whenever mobile code changes on main. Installed APKs download it on next launch.
+#
+# Needs the repository secret EXPO_TOKEN (expo.dev → Account settings → Access tokens).
+# Native changes (new native modules, permissions, app.json native config) still need
+# a new APK: bump expo.version in app.json and run `pnpm --filter mobile build:apk`.
+name: Mobile OTA update
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/mobile/**'
+      - 'packages/shared/**'
+      - 'packages/validation/**'
+      - '.github/workflows/mobile-update.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: mobile-ota-update
+  cancel-in-progress: true
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check for EXPO_TOKEN
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "::error::Add the EXPO_TOKEN repository secret to publish mobile updates."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build shared packages
+        run: pnpm --filter @repo/shared --filter @repo/validation build
+
+      - name: Publish update
+        working-directory: apps/mobile
+        env:
+          EXPO_PUBLIC_API_URL: https://wealthguard-api.vercel.app/api
+          EXPO_PUBLIC_WEB_URL: https://wealthguard-web.vercel.app
+        run: eas update --channel preview --message "${{ github.event.head_commit.message || 'Manual update' }}" --non-interactive
